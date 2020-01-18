@@ -1,29 +1,5 @@
 
 """
-    Working with Excel can be tedious.
-
-    It's extremely easy to build bad worksheets and there is no enforcement
-    to schemas or standards -- anyone can just paste in data where ever
-    they feel like.
-    ...
-        build in awkward, asymmetrical sections
-        multiple, inconsistent section in each ws
-        instead of square, continuous ranges on each ws
-    ...
-
-    This usually results people treating workbooks like
-    as the software equivalent of a dirty laundry hamper; no thought
-    is given to how they are organized, even if values are dangling over
-    the rim, that tends to be good enough.
-
-    This goes hand-in-hand with insanely complicated
-    Excel formulas and VBA that looks like
-
-    ...
-        viscous data
-        data fluidity
-    ...
-
     https://imgs.xkcd.com/comics/algorithms.png
     https://www.teampay.co/insights/biggest-excel-mistakes-of-all-time/
 
@@ -35,39 +11,6 @@
     ...
         instead of more meaningful header names,
     ...
-
-    ...
-        and yet many companies are hopelessly dependent on Excel, or have legacy infrastructure
-        that would be too time-consuming to replace, especially banks.
-        sometimes extracting this data through Excel is unavoidable
-    ....
-
-    Other python libraries like xlrd, xlwt, and openpyxl will allow you to read static
-    Excel files, but don't grant control over the application itself, limiting many
-    abilities that may be critical to have at your disposal like formula recalculation,
-    invoking add-ins / VBA, etc
-
-    The excel_levity_cls in vengeance is meant to
-    provide some artillery when
-    grant maximum control over Excel,
-    and dramatically increase the data-fluidity of worksheets, even poorly designed
-    ones
-    soften up targets
-    ...
-        allowing the developer more effortlesss
-        design stable and flexible processes
-        that is stable and can effectively withstand code-hostile environments people have
-        created with their workbooks,
-        to do whatever transformations necessary
-
-        operate as commando for legacy workbooks
-        target awkward, asymmetrical sections
-
-        for new workbooks, to combine the phenomenal prototyping cababilities Excel provides
-        with a language that is more worthy than VBA
-    ...
-
-
 """
 
 from time import sleep
@@ -86,27 +29,6 @@ from root.examples import excel_shared as share
 xlYellow = 65535
 xlBlue   = 15773696
 xlPink   = 9856255
-
-
-def exper():
-    share.set_project_workbook(excel_app=None,
-                               read_only=True,
-                               update_links=True)
-
-    lev_1 = share.worksheet_to_lev('empty sheet')
-    lev_2 = share.worksheet_to_lev('Sheet5')
-
-    a = lev_1.first_empty_row
-    b = lev_2.first_empty_row
-
-    a = lev_1.first_empty_column
-    b = lev_2.first_empty_column
-
-    a = lev_1['*f *a'].Address
-    b = lev_2['*f *a'].Address
-
-    pass
-
 
 
 @print_runtime

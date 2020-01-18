@@ -69,8 +69,8 @@ from vengeance.util.text import print_performance
 
 from root.examples import excel_shared as share
 
-from line_profiler import LineProfiler
-profiler = LineProfiler()
+# from line_profiler import LineProfiler
+# profiler = LineProfiler()
 
 
 @print_runtime
@@ -101,8 +101,8 @@ def main():
     # flux = flux.namedtuples()
     attribute_access_performance(flux)
 
-    if profiler.functions:
-        profiler.print_stats()
+    # if profiler.functions:
+    #     profiler.print_stats()
 
 
 def instantiate_flux(num_rows=100,
