@@ -311,7 +311,7 @@ def iterate_primitive_rows(flux):
 
     # alternatives primitive list values from rows
     m = [row.dict() for row in flux]
-    m = [row.namedtuples() for row in flux.matrix[5:10]]
+    m = [row.namedtuple() for row in flux.matrix[5:10]]
 
     # build new primitive matrix
     m = [flux.header_values]
@@ -418,49 +418,67 @@ def iterate_flux_rows(flux):
 def flux_sort_filter(flux):
     def starts_with_a(_row_):
         """ first-class filter function """
-        return (_row_.col_a.startswith('a')
-                or _row_.col_b.startswith('a')
-                or _row_.col_c.startswith('a'))
+        return (_row_.col_a.startswith('a') or
+                _row_.col_b.startswith('a') or
+                _row_.col_c.startswith('a'))
 
     flux = flux.copy()
-
-    # modifications return as new flux_cls
-    flux_b = flux.sorted('col_a', 'col_b', 'col_c', reverse=[True, True, True])
-    flux_b = flux.filtered(starts_with_a)
-    flux_b = flux.filtered_by_unique('col_a', 'col_b')
 
     # in-place modifications
     flux.sort('col_a', 'col_b', 'col_c', reverse=[False, True])
     flux.filter(starts_with_a)
     flux.filter_by_unique('col_a', 'col_b')
 
+    # -ed methods return new flux_cls
+    flux_b = flux.sorted('col_a', 'col_b', 'col_c', reverse=[True, False, True])
+    flux_b = flux.filtered(starts_with_a)
+    flux_b = flux.filtered_by_unique('col_a', 'col_b')
+
     pass
 
 
 def flux_aggregation_methods():
     m = [['name_a', 'name_b', 'val']]
-    m.extend([['a', 'b', 10]] * 10)
-    m.extend([['c', 'd', 20]] * 10)
-    m.extend([['e', 'f', 30]] * 10)
+    m.extend([['a', 'b', 10] for _ in range(10)])
+    m.extend([['c', 'd', 20] for _ in range(10)])
+    m.extend([['e', 'f', 30] for _ in range(10)])
 
     flux = flux_cls(m)
 
     a = flux.unique_values('name_a')
     a = flux.unique_values('name_a', 'name_b')
 
-    a = flux.namedtuples()
-
-    # .index_row() ("row" singular) and .index_rows() ("rows" plural)
-    d_1 = flux.index_row('name_a', 'name_b')
-    d_2 = flux.index_rows('name_a', 'name_b')
+    # .index_row() and .index_rows() have slightly different behavior
+    d_1 = flux.index_row('name_a', 'name_b')        # (row singular) non-unique rows are overwritten
+    d_2 = flux.index_rows('name_a', 'name_b')       # (rows plural)  add non-unique rows to list
 
     k = ('a', 'b')
-    a = d_1[k]      # .index_row  (non-unique values are overwritten)
-    b = d_2[k]      # .index_rows (non-unique values are stored as list; effectively a groupby statement)
+    a = d_1[k]          # .index_row():  only ever stores a single row
+    b = d_2[k]          # .index_rows(): appends rows to list; effectively, a groupby statement
 
-    # .index_rows() can also act as a sumif
+    pass
+
+    # .index_rows() can be used as a sumif
+    sumifs = {}
     for k, rows in d_2.items():
-        v = sum([row.val for row in rows])
+        sumifs[k] = sum([row.val for row in rows])
+
+    # .index_row() can be used as a join
+    flux_ref = flux_cls([['name', 'id',       'cost'],
+                         ['a',    '#6151-165', 5.10],
+                         ['e',    '#8979-154', 10.50],
+                         ['g',    '#6654-810', 13.00]])
+    refs = flux_ref.index_row('name')
+
+    flux.append_columns('id', 'cost')
+    for row in flux:
+        _row_ref_ = refs.get(row.name_a)
+        if _row_ref_:
+            row.id   = _row_ref_.id
+            row.cost = _row_ref_.cost
+
+    # convert rows to namedtuples, which are read-only and have faster attribute lookups than flux_row_cls
+    d = {k: row.namedtuple() for k, row in flux.index_row('name_a').items()}
 
     # segments of identical values
     a = flux.contiguous_indices('name_a', 'name_b')
