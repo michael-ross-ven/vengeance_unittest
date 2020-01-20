@@ -192,14 +192,22 @@ def read_from_excel():
     if share.wb is None:
         share.set_project_workbook(read_only=True)
 
-    flux = share.worksheet_to_flux('Sheet2')
+    flux = share.worksheet_to_flux('sheet1')
+    flux = share.worksheet_to_flux('sheet1', c_1='col_a', c_2='col_a')
+    flux = share.worksheet_to_flux('subsections', c_1='<sect_2>', c_2='</sect_2>')
+
+    pass
 
 
 def write_to_excel(flux):
     if share.wb is None:
         share.set_project_workbook(read_only=True)
 
-    share.write_to_worksheet('Sheet2', flux)
+    share.write_to_worksheet('sheet2', flux)
+    share.write_to_worksheet('sheet2', flux.matrix[:4])
+    share.write_to_worksheet('sheet1', flux, c_1='F')
+
+    pass
 
 
 def modify_columns(flux):
@@ -450,18 +458,13 @@ def flux_aggregation_methods():
 
     # .index_row() and .index_rows() have slightly different behavior
     d_1 = flux.index_row('name_a', 'name_b')        # (row singular) non-unique rows are overwritten
-    d_2 = flux.index_rows('name_a', 'name_b')       # (rows plural)  add non-unique rows to list
+    d_2 = flux.index_rows('name_a', 'name_b')       # (rows plural)  non-unique rows appended to list
 
     k = ('a', 'b')
     a = d_1[k]          # .index_row():  only ever stores a single row
-    b = d_2[k]          # .index_rows(): appends rows to list; effectively, a groupby statement
+    b = d_2[k]          # .index_rows(): list of rows; effectively, a groupby statement
 
     pass
-
-    # .index_rows() can be used as a sumif
-    sumifs = {}
-    for k, rows in d_2.items():
-        sumifs[k] = sum([row.val for row in rows])
 
     # .index_row() can be used as a join
     flux_ref = flux_cls([['name', 'id',       'cost'],
@@ -473,12 +476,22 @@ def flux_aggregation_methods():
     flux.append_columns('id', 'cost')
     for row in flux:
         _row_ref_ = refs.get(row.name_a)
+
         if _row_ref_:
             row.id   = _row_ref_.id
             row.cost = _row_ref_.cost
 
-    # convert rows to namedtuples, which are read-only and have faster attribute lookups than flux_row_cls
-    d = {k: row.namedtuple() for k, row in flux.index_row('name_a').items()}
+    pass
+
+    # .index_rows() can be used as a sumif
+    sumifs = {}
+    for k, rows in d_2.items():
+        sumifs[k] = sum([row.val for row in rows])
+
+    pass
+
+    # convert rows to namedtuples, which are read-only and have faster attribute lookup than flux_row_cls
+    d = {k: row.namedtuple() for k, row in flux.index_row('name_b').items()}
 
     # segments of identical values
     a = flux.contiguous_indices('name_a', 'name_b')
