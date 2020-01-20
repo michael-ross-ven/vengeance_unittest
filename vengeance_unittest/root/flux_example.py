@@ -7,28 +7,30 @@ why vengeance developed?
 simple
     straightforward, intuitive, row-major loops
         for row in flux:
+            # ...
     straightforward, intuitive, attribute access
         row.col_a = 'blah'
         row.col_b = row.col_a
     attribute access doesn't require any mental abstraction
         syntax is clear and self-documenting
-        (eg, row.theta = degrees(atan(row.w_2 - row.w_1)))
+        (eg, row.theta = atan(row.w_2 - row.w_1))
 
 performant
     does not use wasteful copies of instance dicts
-        about half the memory of a DataFrame for same data
-        columns modifications applied instantanuously without updating rows one-by-one
+        column modifications applied instantanuously, without updating columns on each individual row
+        about half the memory of a DataFrame for same matrix
     iteration speed is limited only by python itself
-        flux_cls does not use specialized data structures (only lists in native python)
+        python's native list structure underlies the flux_cls, no specialized data structures
+        or numpy arrays
 
 a complimentary library to pandas
-    flux_cls:  fill role for small and mid-sized (a couple million rows) datasets
-    DataFrame: large datasets
+    flux_cls:  fill role for small and mid-sized datasets (up to a couple million rows)
+    DataFrame: large datasets (vectorization)
 
-    small and mid-sized datasets are far more common
     until performance becomes the dominant factor, vectorization is not needed, simplicity
     should be valued over performance
-    DataFrame is hard to inspect in debugger, hard to find problematic rows / values
+    small and mid-sized datasets are far more common
+    DataFrame inspection in debugger is noisy, hard to find problematic rows / values
     DataFrame syntax has large learning curve, requires a lot of memorization and time
     looking up references in documentation instead of coding
     DataFrame syntax can sometimes get too complicated, too many ways of accomplishing same thing,
@@ -105,51 +107,12 @@ def main():
     #     profiler.print_stats()
 
 
-def instantiate_flux(num_rows=100,
-                     num_cols=3,
-                     len_values=3):
-
-    m = random_matrix(num_rows, num_cols, len_values)
-    flux = flux_cls(m)
-
-    a = flux.is_empty
-    a = flux.is_jagged
-
-    a = flux.headers
-    a = flux.header_values
-    a = flux.first_five_rows
-
-    a = flux.num_rows
-    a = flux.num_cols
-    a = flux.max_num_cols
-
-    return flux
-
-
-def random_matrix(num_rows=1_000,
-                  num_cols=3,
-                  len_values=3):
-    m = [[]]
-    for i in range(num_cols):
-        m[0].append('col_{}'.format(chr(i + 97)))
-
-    alc = ascii_lowercase
-    for _ in range(num_rows):
-        row = [''.join(choice(alc) for _ in range(len_values))
-                                   for _ in range(num_cols)]
-        m.append(row)
-
-    return m
-
-
 def invalid_instantiations():
     """
-    matrix must have exactly 2-dimensions
-    although a blank flux_cls may be instantiated without any arguments
+    matrix must not be one-dimensional
     eg
-        flux = flux_cls()
-        but not
-        flux = flux_cls([])
+        flux = flux_cls(['a', 'b', 'c'])
+    although a blank flux_cls may be instantiated without any arguments
 
     there are certain reserved column names that cannot appear as
     dynamic header names in matrix
@@ -169,6 +132,43 @@ def invalid_instantiations():
         print(e)
 
     print()
+
+
+def instantiate_flux(num_rows=100,
+                     num_cols=3,
+                     len_values=3):
+
+    m = random_matrix(num_rows, num_cols, len_values)
+    flux = flux_cls(m)
+
+    a = flux.headers
+    a = flux.header_values
+    a = flux.first_five_rows
+
+    a = flux.is_empty
+    a = flux.is_jagged
+
+    a = flux.num_rows
+    a = flux.num_cols
+    a = flux.max_num_cols       # this will differ from self.num_cols when matrix is jagged
+
+    return flux
+
+
+def random_matrix(num_rows=1_000,
+                  num_cols=3,
+                  len_values=3):
+    m = [[]]
+    for i in range(num_cols):
+        m[0].append('col_{}'.format(chr(i + 97)))
+
+    lc = ascii_lowercase
+    for _ in range(num_rows):
+        row = [''.join(choice(lc) for _ in range(len_values))
+                                  for _ in range(num_cols)]
+        m.append(row)
+
+    return m
 
 
 def write_to_file(flux):
@@ -234,35 +234,41 @@ def modify_columns(flux):
     flux.rename_columns({'renamed_a': 'col_a',
                          'renamed_b': 'col_b'})
 
-    # encapsulate insertion, deletion and rename within single function
+    # encapsulate insertion, deletion and renaming of columns within single function
     flux.matrix_by_headers('col_c',
                            'col_b',
-                           '(inserted_a)',
                            {'col_a': 'renamed_a'},
+                           '(inserted_a)',
                            '(inserted_b)',
                            '(inserted_c)')
 
     # assign values to column
-    flux['renamed_a'] = [None] * flux.num_rows
+    flux['renamed_a'] = flux['col_b']
+    flux['renamed_a'] = ['a'] * flux.num_rows
 
-    # assign values to a new column
-    flux['new_col'] = ['new'] * flux.num_rows
+    # append a new column
+    flux['append_d'] = ['new'] * flux.num_rows
 
     # read values from column
     col = flux['col_b']
     cols = flux.columns('col_b', 'col_c')
 
+    col = flux[1]
+    cols = flux[2:3]
+
     pass
 
 
 def modify_rows(flux):
-    flux_e = flux_cls()
-    flux_e.append_rows([['a', 'b', 'c']] * 25)
+    flux_a = flux_cls()
+    flux_a.append_rows([['a', 'b', 'c']] * 25)
 
     flux_a = flux.copy()
     flux_b = flux.copy()
 
     flux_b.append_rows([['a', 'b', 'c']] * 25)
+    flux_a += [['a', 'b', 'c']] * 25
+
     a = flux_a.num_rows
     b = flux_b.num_rows
 
@@ -274,13 +280,13 @@ def modify_rows(flux):
     a = flux_a.header_values
     b = flux_b.header_values
 
-    # add rows from another flux_cls
-    flux_c = flux_a + flux_b
-    flux_a += flux_b
-    flux_a += [['a', 'b', 'c']] * 25
-    
+    # insert / append another flux_cls
     flux_b.insert_rows(0, flux_a)
     flux_b.append_rows(flux_a.matrix[10:15])
+
+    flux_c = flux_a + flux_b
+    flux_a += flux_b
+    flux_a += flux_b.matrix[10:15]
 
     pass
 
@@ -293,13 +299,9 @@ def iterate_primitive_rows(flux):
           the default values are the specialized anchor references
           starting at header row, ending at last row
         * r_1, r_2 can also be integers
-
-    m = list(flux.rows())
-        * as full matrix, includes header row
-
-    m = list(flux.rows(1))
-        * as full matrix, excludes header row
     """
+    a = flux.matrix[3].values
+
     for row in flux.rows(5, 6):
         a = row[0]
 
@@ -307,17 +309,27 @@ def iterate_primitive_rows(flux):
     m = [row.values for row in flux]
     m = [row.values for row in flux.matrix[5:10]]
 
-    # build new matrix
+    # alternatives primitive list values from rows
+    m = [row.dict() for row in flux]
+    m = [row.namedtuples() for row in flux.matrix[5:10]]
+
+    # build new primitive matrix
     m = [flux.header_values]
     for r, row in enumerate(flux, 1):
         if r % 2 == 0:
             m.append(row.values)
 
-    # extract column values
-    a = [row.values[0] for row in flux]
-    a = flux[0]
-    a = flux['col_a']
-    a = flux.columns('col_a', 'col_b')
+    # extract single column values
+    col = [row.values[-1] for row in flux]
+    col = [row.col_b for row in flux]
+    col = flux['col_b']
+    col = flux.columns('col_b')
+
+    # multiple columns
+    cols = flux[1:3]
+    cols = flux.columns('col_a', 'col_b', 'col_c')
+    a, b, c = flux.columns('col_c', 'col_b', 'col_a')
+    cols_dict = flux.columns('col_a', 'col_b', 'col_c', mapped=True)
 
     pass
 
@@ -334,18 +346,15 @@ def iterate_flux_rows(flux):
     for row in flux:
         * preferred iteration syntax
         * begins at first row, not header row
-
-    m = list(flux.flux_rows())
-        * as full matrix, includes header row
-
-    m = list(flux)
-        * as full matrix, excludes header row
     """
     flux = flux.copy()
+
+    a = flux.matrix[3]
 
     for row in flux:
         # a = row._view_as_array      # to help with debugging; triggers a special view in PyCharm
         # a = row._headers
+        # a = row.is_header_row()
 
         a = row.names
         a = row.values
@@ -366,45 +375,42 @@ def iterate_flux_rows(flux):
         row.values[0] = a
 
         # assign multiple row values
-        # row.values[2:] = ['blah'] * (flux.num_cols - 2)
+        # row.values = ['blah'] * flux.num_cols
+        # row.values[2:] = ['blah blah'] * (flux.num_cols - 2)
+
+    flux.label_row_indices()            # to help with debugging; modifies row's __repr__
 
     # slice
-    for row in flux.matrix[5:]:
-        pass
+    for row in flux.matrix[5:-5]:
+        a = row.i                       # added by label_row_indices()
 
-    m = flux.matrix[10:-10]
+    # stride
+    for row in flux.matrix[::3]:
+        a = row.i                       # added by label_row_indices()
 
-    # extract single column
-    col = [row.values[1] for row in flux]
+    # single column
+    col = [row.values[-1] for row in flux]
     col = [row.col_b for row in flux]
     col = flux['col_b']
     col = flux.columns('col_b')
 
     # multiple columns
-    cols = flux.columns('col_a', 'col_b', 'col_c')
     cols = flux[1:3]
+    cols = flux.columns('col_a', 'col_b', 'col_c')
+    a, b, c = flux.columns('col_c', 'col_b', 'col_a')
+    cols_dict = flux.columns('col_a', 'col_b', 'col_c', mapped=True)
 
-    # extract primitive values
+    # primitive matrix
     m = [row.values for row in flux]
+    m = list(flux.rows())
 
-    flux.label_row_indices()         # to help with debugging; modifies row's __repr__
-
-    # build new matrix from even number rows
-    m_1 = [flux.matrix[0]]
-    for r, row in enumerate(flux, 1):
-        if r % 2 == 0:
-            m_1.append(row)
-
-    # build new matrix from even number rows
-    m_2 = flux.matrix[::2]
-
-    # offset comparisions can easily be achieved by:
-    rows     = iter(flux)
-    row_prev = next(rows)
-
-    for row in rows:
-        if row.col_a == row_prev.col_b:      # some comparison
+    # vertical comparisions
+    row_prev = flux.matrix[1]
+    for row in flux.matrix[2:]:
+        if row.col_a == row_prev.col_b:
             pass
+
+        row_prev = row
 
     pass
 

@@ -69,7 +69,7 @@ def main():
 def instantiate_lev(tab_name):
     """
     excel_levity_cls range reference:
-        lev['<col><row>:<col><row>']
+        lev['{col}{row}:{col}{row}']
         :returns a win32com reference to Excel range
 
         anchor reference mnemonics:
@@ -106,40 +106,43 @@ def instantiate_lev(tab_name):
     a = lev.headers
     a = lev.header_values
 
+    # named ranges
     a = lev.named_ranges
-    a = lev['some_named_range_1'].Value
+    a = lev['some_named_range_1'].Address
     a = lev['some_named_range_2'].Value
     a = lev['excel_date'].Value
+    b = lev['excel_date'].Value2
 
-    # examples of excel_levity_cls reference syntax
+    # excel_levity_cls range reference syntax
     if 'col_b' in lev.headers:
-        a = lev['col_b first_r : col_b last_r'].Address
+        a = lev['col_b first_r:col_b last_r'].Address
 
-    a = lev['first_c header_r : last_c last_r'].Address
+    a = lev['first_c header_r:last_c last_r'].Address
     a = lev['*f *h:*l *l'].Address
     a = lev['A*h:E*l'].Address
-
-    # or lev.sheet.Range('...') for literal addresses
-    a = lev['A1'].Value
-    a = lev['A1:C10'].Value
 
     lev['*f *h:*l *l'].Interior.Color = xlPink
     lev['*f *f:*l *l'].Interior.Color = xlBlue
 
-    lev.clear_filter()
-    lev.remove_filter()
-    lev.reapply_filter()
+    # by literal reference
+    a = lev['A1'].Value
+    a = lev['A1:C10'].Value
+    a = lev.ws.Range('A1').Value
+    a = lev.ws.Range('A1:C10').Value
+
+    # lev.clear_filter()
+    # lev.remove_filter()
+    # lev.reapply_filter()
 
     return lev
 
 
 def lev_subsections():
     """
-    row 1 (called the meta_row) in the Excel worksheets can be used
+    row 1 ("meta_row") in the Excel worksheets can be used
     to label subsections within a worksheet
 
     any other column reference will work, however
-
     eg:
         by meta names
             share.worksheet_to_lev('subsections', c_1='<sect_2>', c_2='</sect_2>')
@@ -238,7 +241,7 @@ def iterate_flux_rows():
         a = row.names
         a = row.values
 
-        a = row._view_as_array       # meant as a debugging tool in PyCharm
+        # a = row._view_as_array       # meant as a debugging tool in PyCharm
 
         if 'col_a' in lev.headers:
             a = row.col_a
@@ -282,6 +285,8 @@ def convert_to_flux():
     lev  = share.worksheet_to_lev('Sheet1')
     flux = flux_cls(lev)
 
+    # flux = share.worksheet_to_flux('Sheet1')
+
     for row in flux:
         row.col_a = 'from flux'
 
@@ -301,33 +306,40 @@ def write_values():
     lev['*f *f'] = ['hello', 'hello', 'hello']
 
     # write single column
-    lev['*f *f'] = [['hello'], ['hello'], ['hello'], ['hello'], ['hello'], ['hello']]
+    lev['*f *f'] = [['hello'],
+                    ['hello'],
+                    ['hello'],
+                    ['hello'],
+                    ['hello'],
+                    ['hello']]
 
-    # write rows and columns
+    # write matrix
     m = [['col_a', 'col_b', 'col_c']]
     m.extend([['blah', 'blah', 'blah']] * 10)
 
     lev.clear('*f *f:*l *l')
     lev['*f *h'] = m
 
-    # helper function shortcut
+    # or use helper function
     share.write_to_worksheet('Sheet2', m)
+
+    # write from flux
+    # flux = share.worksheet_to_flux('Sheet1')
+    # share.write_to_worksheet('Sheet2', flux)
 
     # Excel dates
     a = lev['excel_date'].Value
-    a = lev['excel_date'].Value2
-
-    # convert Excel eopoch float value into datetime
-    b = vengeance.to_datetime(a)
+    b = lev['excel_date'].Value2
+    c = vengeance.to_datetime(b)
 
     # Excel only accepts datetime.datetime, not datetime.date
     try:
-        lev['excel_date'].Value = b.date()
+        lev['excel_date'].Value = a.date()
     except TypeError as e:
         print(e)
 
     # the excel_levity_cls.__setitem__ protects against this issue
-    lev['excel_date'] = b.date()
+    lev['excel_date'] = a.date()
 
 
 def write_values_from_lev():
@@ -340,8 +352,12 @@ def write_values_from_lev():
     lev_2.clear('*f *f:*l *l')
     lev_2['*f *h'] = lev_1
 
-    # helper function
+    # or use helper function
     share.write_to_worksheet(lev_2, lev_1)
+
+    # write from flux
+    flux = share.worksheet_to_flux('Sheet1')
+    share.write_to_worksheet('Sheet2', flux)
 
 
 def append_values():
@@ -378,7 +394,7 @@ def write_formulas():
     # lev['col_b 4'] = '=({}{} + 20)'.format(lev.headers['col_b'], lev.first_r)
     # lev['col_c 4'] = '=({}{} + 30)'.format(lev.headers['col_c'], lev.first_r)
 
-    lev['*f *h'] = ['col_a', 'col_b', 'col_c', 'col_d', 'col_e', 'col_f', 'col_h', 'col_i', 'col_j']
+    lev['*f *h'] = [['col_a', 'col_b', 'col_c', 'col_d', 'col_e', 'col_f', 'col_h', 'col_i', 'col_j']]
 
     lev['col_a *f'] = '=(1 + 0)'
     lev['col_a *f:*l *f'].FillRight()
@@ -391,7 +407,7 @@ def write_formulas():
     lev.calculate()
 
 
-@vengeance.print_runtime
+@print_runtime
 def modify_range_values(iteration='slow'):
     """
     although calls like "ws.Range('...').Value" work fine in VBA,
@@ -471,22 +487,23 @@ def excel_object_model():
     # share.wb.Application.Run(path + '!' + macro_name, 'hello from python')
 
 
-def allow_focus():
+def allow_worksheet_focus():
     """
     if excel_levity_cls.allow_focus = False, lev.activate() will have no effect
-
     setting this value to False allows processes to run without disrupting the user
     """
     print()
-    activate_all_sheets()
+    activate_all_sheets(allow_focus=False)
 
     print()
-    excel_levity_cls.allow_focus = True
-    activate_all_sheets()
+    activate_all_sheets(allow_focus=True)
+
+    excel_levity_cls.allow_focus = False
 
 
-def activate_all_sheets():
-    print('excel_levity_cls.allow_focus = {}'.format(excel_levity_cls.allow_focus))
+def activate_all_sheets(allow_focus):
+    excel_levity_cls.allow_focus = allow_focus
+    print('excel_levity_cls.allow_focus = {}'.format(allow_focus))
 
     for ws in share.wb.Sheets:
         print("activate sheet: '{}'".format(ws.Name))
