@@ -44,7 +44,6 @@ a complimentary library to pandas
 
         like, wtf does this even mean anymore??
 
-    DataFrame insert / append rows operation is O^2
     mapping rows to dictionary is an extremely useful and flexible operation, but....
         VERY slow in pandas (requires transpose operation)
         doesn't store rows themselves
@@ -73,6 +72,8 @@ from random import choice
 import vengeance
 from vengeance import flux_cls
 from vengeance import flux_row_cls
+from vengeance import to_datetime
+from vengeance import is_datetime
 from vengeance import print_runtime
 from vengeance.util.text import print_performance
 
@@ -102,13 +103,15 @@ def main():
     iterate_primitive_rows(flux)
     iterate_flux_rows(flux)
 
-    flux_sort_filter(flux)
+    flux_sort_and_filter(flux)
     flux_aggregation_methods()
 
     flux_subclass()
 
     # flux = flux.namedtuples()
     attribute_access_performance(flux)
+
+    print()
 
     # if profiler.functions:
     #     profiler.print_stats()
@@ -145,19 +148,22 @@ def instantiate_flux(num_rows=100,
                      num_cols=3,
                      len_values=3):
 
+    # matrix organized like csv data, column names are provided in first row
     m = random_matrix(num_rows, num_cols, len_values)
     flux = flux_cls(m)
 
     a = flux.headers
-    a = flux.header_values
-    a = flux.first_five_rows
+    a = flux.header_names
+    a = flux.preview
 
     a = flux.is_empty
-    a = flux.is_jagged
-
     a = flux.num_rows
     a = flux.num_cols
-    a = flux.max_num_cols       # this will differ from self.num_cols when matrix is jagged
+
+    # flux.min_num_cols will differ from flux.min_num_cols when matrix is jagged
+    a = flux.is_jagged
+    a = flux.min_num_cols
+    a = flux.max_num_cols
 
     return flux
 
@@ -257,20 +263,19 @@ def modify_columns(flux):
     flux['append_d'] = ['new'] * flux.num_rows
 
     # make rows jagged
-    del flux.matrix[3].values[2]
-    del flux.matrix[4].values[2]
-    del flux.matrix[5].values[2]
+    del flux.matrix[3].values[1:]
+    flux.matrix[4].values.extend(['jagged', 'jagged'])
 
     if flux.is_jagged:
+        c_1 = flux.num_cols
+        c_2 = flux.min_num_cols
+        c_3 = flux.max_num_cols
         a = flux.identify_jagged_rows()
 
     pass
 
 
 def modify_rows(flux):
-    flux_a = flux_cls()
-    flux_a.append_rows([['a', 'b', 'c']] * 25)
-
     flux_a = flux.copy()
     flux_b = flux.copy()
 
@@ -280,13 +285,16 @@ def modify_rows(flux):
     a = flux_a.num_rows
     b = flux_b.num_rows
 
+    flux_a = flux_cls()
+    flux_a.append_rows([['a', 'b', 'c']] * 25)
+
     flux_b.insert_rows(5, [['blah', 'blah', 'blah']] * 10)
 
     # inserting rows at index 0 will overwrite existing headers
     flux_b.insert_rows(0, [['col_d', 'col_e', 'col_f']] +
                           [['d', 'e', 'f']] * 3)
-    a = flux_a.header_values
-    b = flux_b.header_values
+    a = flux_a.header_names
+    b = flux_b.header_names
 
     # insert / append another flux_cls
     flux_b.insert_rows(0, flux_a)
@@ -303,24 +311,29 @@ def iterate_primitive_rows(flux):
     """ rows as primitive values """
     flux = flux.copy()
 
-    a = flux.matrix[0].values
-    a = flux.matrix[3].values
+    # individual rows
+    row = flux.matrix[0].values
+    row = flux.matrix[3].values
 
-    for row in flux.rows(5, 6):
+    for row in flux.rows():
+        a = row[0]
+
+    for row in flux.rows(r_2=20):
+        a = row[0]
+
+    for row in flux.rows(5, 10):
         a = row[0]
 
     m = list(flux.rows())
+    # or
     m = [row.values for row in flux]
-    m = [row.values for row in flux.matrix[5:10]]
-
-    # alternatives primitive list values from rows
     m = [row.dict() for row in flux]
     m = [row.namedtuple() for row in flux.matrix[5:10]]
 
-    # build new primitive matrix
-    m = [flux.header_values]
+    # build new matrix of primitive values
+    m = [flux.header_names]
     for r, row in enumerate(flux, 1):
-        if r % 2 == 0:
+        if r % 2 == 0 and row[0].startswith('a'):
             m.append(row.values)
 
     # single column
@@ -330,11 +343,32 @@ def iterate_primitive_rows(flux):
     col = flux.columns('col_b')
 
     # multiple columns
-    cols = [row.values[1:3] for row in flux]
     cols = flux[1:3]
     cols = flux.columns('col_a', 'col_b', 'col_c')
     a, b, c = flux.columns('col_c', 'col_b', 'col_a')
     cols_dict = flux.columns('col_a', 'col_b', 'col_c', mapped=True)
+
+    # copy values from another column
+    flux['col_a'] = flux['col_b']
+    # append new column
+    flux['col_new'] = flux['col_b']
+
+    # convert values in column
+    flux['col_c'] = [v.lower() for v in flux['col_c']]
+    # and if we had appropriate datatypes this column...
+    # flux['col_c'] = [int(v) for v in flux['col_c']]
+    # flux['col_c'] = [float(v) for v in flux['col_c']]
+    # flux['col_c'] = [to_datetime(v, '%Y-%m-%d') for v in flux['col_c']]
+    # flux['col_c'] = [custom_function(v) for v in flux['col_c']]
+    # etc...
+
+    # filter values
+    col = [v for v in flux['col_a']
+             if v == 'blah']
+
+    # "primitive" row values can also be more complex
+    flux['col_z'] = [tuple(row) for row in flux['col_b']]
+    flux['col_z'] = [{'a': [1, 2, 3]} for _ in range(flux.num_rows)]
 
     pass
 
@@ -344,18 +378,29 @@ def iterate_flux_rows(flux):
 
     for row in flux:
         * preferred iteration syntax
-        * begins at first row, not header row
+        * skips header row, begins at flux.matrix[1]
     """
     flux = flux.copy()
 
-    a = flux.matrix[0]
-    a = flux.matrix[3]
+    # individual rows
+    row = flux.matrix[0]
+    row = flux.matrix[5]
+    row = flux.matrix[6]
 
+    flux.label_row_indices()            # to help with debugging; modifies row's __repr__ and adds .i attribute
+    row = flux.matrix[0]
+    row = flux.matrix[5]
+    row = flux.matrix[6]
+
+    pass
+
+    # *** preferred iteration syntax
     for row in flux:
-        # a = row._view_as_array      # to help with debugging; triggers a special view in PyCharm
+        # a = row._view_as_array        # to help with debugging; triggers a special view in PyCharm
         # a = row._headers
         # a = row.is_header_row()
 
+        i = row.i                       # added by .label_row_indices()
         a = row.names
         a = row.values
 
@@ -378,23 +423,30 @@ def iterate_flux_rows(flux):
         # row.values = ['blah'] * flux.num_cols
         # row.values[2:] = ['blah blah'] * (flux.num_cols - 2)
 
-    flux.label_row_indices()    # to help with debugging; modifies row's __repr__ and adds .i attribute
-
     # slice
     for row in flux.matrix[5:-5]:
-        a = row.i                       # added by .label_row_indices()
+        i = row.i                       # .i added by .label_row_indices()
 
     # stride
     for row in flux.matrix[::3]:
-        a = row.i                       # added by .label_row_indices()
+        i = row.i                       # .i added by .label_row_indices()
 
-    # (see iterate_primitive_rows() for more examples of flux columns)
-    flux['col_a'] = flux['col_b']
+    # map, filter rows
+    flux['sum_ord'] = [sum(ord(c) for c in s) for s in flux['col_a']]
+    rows = [row for row in flux
+                if row.sum_ord >= 1150]
 
-    # vertical comparisions
+    pass
+
+    # vertical comparisions involving multiple columns
     row_prev = flux.matrix[1]
     for row in flux.matrix[2:]:
+        if row.col_c is None:
+            # exclude bad conditions...
+            continue
+
         if row.col_a == row_prev.col_b:
+            # take some action...
             pass
 
         row_prev = row
@@ -402,23 +454,52 @@ def iterate_flux_rows(flux):
     pass
 
 
-def flux_sort_filter(flux):
+def flux_sort_and_filter(flux):
+
+    # region {filter functions}
     def starts_with_a(_row_):
-        """ first-class filter function """
+        """ first-class function
+
+        filter functions should return a boolean value
+            False for rows that will be excluded
+            True  for rows that will be included
+        """
         return (_row_.col_a.startswith('a') or
                 _row_.col_b.startswith('a') or
                 _row_.col_c.startswith('a'))
 
+    def starts_with_criteria(_row_):
+        """ first-class function referencing variables from closure
+
+        filter functions should return a boolean value
+            False for rows that will be excluded
+            True  for rows that will be included
+
+        closure scope bypasses the need for additional parameters
+        to be passed to function, eg
+            starts_with_criteria(_row_, criteria_a, criteria_b)
+        """
+        return (_row_.col_a[0] in criteria_a or
+                _row_.col_b[0] in criteria_b)
+    # endregion
+
     flux = flux.copy()
 
+    criteria_a = {'c', 'd', 'e', 'f', 'z'}
+    criteria_b = {'a', 'b', 'm'}
+
+    flux.label_row_indices()
+
     # in-place modifications
-    flux.sort('col_a', 'col_b', 'col_c', reverse=[False, True])
-    flux.filter(starts_with_a)
+    flux.sort('col_a', 'col_b', 'col_c', reverse=[False, True, False])
+    # flux.filter(starts_with_a)
+    flux.filter(starts_with_criteria)
     flux.filter_by_unique('col_a', 'col_b')
 
-    # -ed methods return new flux_cls
+    # *-ed methods return new flux_cls
     flux_b = flux.sorted('col_a', 'col_b', 'col_c', reverse=[True, False, True])
     flux_b = flux.filtered(starts_with_a)
+    flux_b = flux.filtered(starts_with_criteria)
     flux_b = flux.filtered_by_unique('col_a', 'col_b')
 
     pass
@@ -426,23 +507,25 @@ def flux_sort_filter(flux):
 
 def flux_aggregation_methods():
     m = [['name_a', 'name_b', 'val']]
-    m.extend([['a', 'b', 10] for _ in range(10)])
-    m.extend([['c', 'd', 20] for _ in range(10)])
-    m.extend([['e', 'f', 30] for _ in range(10)])
+    m.extend([['a', 'b', 1] for _ in range(10)])
+    m.extend([['c', 'd', 2] for _ in range(15)])
+    m.extend([['e', 'f', 3] for _ in range(10)])
 
     flux = flux_cls(m)
+
+    flux.label_row_indices()
 
     a = flux.unique_values('name_a')
     a = flux.unique_values('name_a', 'name_b')
 
-    # map {column(s): row}
+    # mapping of {column(s): row(s)}
     d = flux.index_row('name_a')
     d = flux.index_row('name_a', 'name_b')
     d = flux.index_row(1, 2)
 
     # .index_row() and .index_rows() have slightly different behavior
-    d_1 = flux.index_row('name_a', 'name_b')        # (row singular) non-unique rows are overwritten
-    d_2 = flux.index_rows('name_a', 'name_b')       # (rows plural)  non-unique rows appended to list
+    d_1 = flux.index_row('name_a', 'name_b')        # (row singular)  non-unique rows are overwritten
+    d_2 = flux.index_rows('name_a', 'name_b')       # (row*s* plural) non-unique rows appended to list
 
     k = ('a', 'b')
     a = d_1[k]          # .index_row():  only ever stores a single row
@@ -450,17 +533,16 @@ def flux_aggregation_methods():
 
     pass
 
-    # .index_row() can be used as a join
-    flux_join = flux_cls([['name', 'id',       'cost'],
-                          ['a',    '#6151-165', 5.10],
-                          ['e',    '#8979-154', 10.50],
-                          ['g',    '#6654-810', 13.00]])
+    # .index_row() can be used as a join against another flux_cls
+    flux_join = flux_cls([['name', 'id', 'cost'],
+                          ['a', '#6151-165', 5.10],
+                          ['e', '#8979-154', 10.50],
+                          ['g', '#6654-810', 13.00]])
     join = flux_join.index_row('name')
 
     flux.append_columns('id', 'cost')
     for row in flux:
         _row_join_ = join.get(row.name_a)
-
         if _row_join_:
             row.id   = _row_join_.id
             row.cost = _row_join_.cost
@@ -468,22 +550,25 @@ def flux_aggregation_methods():
     pass
 
     # .index_rows() can be used as a countif / sumif
-    countifs = {k: len(row) for k, row in d_2.items()}
-
-    sumifs = {}
-    for k, rows in d_2.items():
-        sumifs[k] = sum([row.val for row in rows])
+    countifs = {k: len(rows) for k, rows in d_2.items()}
+    sumifs   = {k: sum(r.val for r in rows)
+                for k, rows in d_2.items()}
 
     pass
 
-    # rows as namedtuples, which are read-only and have faster attribute lookup than flux_row_cls
+    # (performance enhancement)
+    # if mapped row values only need to be referenced, not modified,
+    # attribute lookups on a namedtuple will be slightly faster than the attribute lookups on a flux_row_cls
+    # this time savings can add up if several million lookups need to be performed
     d = flux.index_row('name_a', 'name_b', as_namedtuples=True)
     d = flux.index_rows('name_a', 'name_b', as_namedtuples=True)
 
-    # this is way too slow
+    # conversion to namedtuples can also be done this way, but this is MUCH slower
+    # the time saved from faster attribute lookups is probably lost from time need to do conversion
     # d = {k: row.namedtuple() for k, row in flux.index_row('name_b').items()}
 
-    # segments of identical values
+    # segments where adjacent rows have identical values
+    a = flux.contiguous_indices('name_a')
     a = flux.contiguous_indices('name_a', 'name_b')
 
     pass
@@ -491,27 +576,35 @@ def flux_aggregation_methods():
 
 def flux_subclass():
     """
-    complex transformations should be encapsulated in a separate class, with each
-    state transformation given a meaningful method name
-
-    these transformations can be defined by the flux_custom_cls.commands variable
-    at the top of the classs, which provides a high-level description of its
-    intended behaviors, making its states more explicit and modular
-
-    as opposed to the transformation idioms in pandas DataFrame like
+    the transformation idioms in pandas DataFrames can be difficult to interpret, such as
         df['diff'] = np.sign(df.column1.diff().fillna(0)).shift(-1).fillna(0)
+
+    it helps to encapsulate a series of complex state transformations
+    in a separate class, where each state transformation is given a meaningful
+    method name and is responsible for one, and only one state
+
+    the transformation definitions can be controlled by the .commands
+    class variable, which provides a high-level description of its intended
+    behaviors, without the need to look into any function bodies.
+    controlling its behavior through discrete transformations also
+    makes each state more explicit, modular and easier to maintain
+
+    (internal transformations meant to be called by .execute_commands() are prefixed with '_'
+     to denote that they are not called by client, and to distinguish them from super()
+     methods)
     """
-    m = [['transaction_id', 'name', 'apples_sold', 'apples_bought'],
-         ['id-001', 'alice', 2, 0],
-         ['id-002', 'alice', 0, 1],
-         ['id-003', 'bob',   2, 5],
-         ['id-004', 'chris', 2, 1],
-         ['id-005',  None,   7, 1]]
+    m = [['transaction_id', 'name', 'apples_sold', 'apples_bought', 'date'],
+         ['id-001', 'alice', 2, 0, '2019-01-13'],
+         ['id-002', 'alice', 0, 1, '2018-03-01'],
+         ['id-003', 'bob',   2, 5, '2019-07-22'],
+         ['id-004', 'chris', 2, 1, '2019-06-28'],
+         ['id-005',  None,   7, 1,  None]]
     flux = flux_custom_cls(m)
 
+    # print(flux_custom_cls.commands)
     flux.execute_commands(flux.commands)
 
-    # profile argument: useful for helping to debugging any performance issues
+    # profile argument: useful for helping to debug any performance issues
     # flux.execute_commands(flux.commands, profile=True)
     # flux.execute_commands(flux.commands, profile='line_profiler')
     # flux.execute_commands(flux.commands, profile='print_runtime')
@@ -523,34 +616,54 @@ def flux_subclass():
 
 class flux_custom_cls(flux_cls):
 
-    # high-level state-transformation sequence of this class
+    # high-level state-transformation sequence
     commands = ['_sort',
-                '_replace_nones',
+                '_replace_null_names',
+                '_convert_dates',
                 '_count_unique_names',
                 '_filter_apples_sold',
-                ('append_columns', ('commission',
-                                    'id'))]
+                ('append_columns', ('commission',       # append_columns is a super class method
+                                    'apple_brand',
+                                    'revenue',
+                                    'apple_bonus')),
+                '__private_method']
 
     def __init__(self, matrix):
         super().__init__(matrix)
-        self.num_unique_names = 0
+        self.num_unique_names = None
 
     def _sort(self):
-        self.sort('transaction_id', 'apples_sold')
-
-    def _replace_nones(self):
+        self.sort('apples_sold', 'apples_bought')
+    
+    def _replace_null_names(self):
+        # just use an explicit loop for replacement
         for row in self:
             if row.name is None:
                 row.name = 'unknown'
+
+    def _convert_dates(self):
+        # if no errors are expected
+        # self['date'] = [to_datetime(v) for v in self['date']]
+
+        # if there could be errors in conversion
+        for i, row in enumerate(self, 1):
+            is_date, row.date = is_datetime(row.date)
+            if not is_date:
+                print("invalid date: '{}', row {:,}".format(row.date, i))
 
     def _count_unique_names(self):
         self.num_unique_names = len(self.unique_values('name'))
 
     def _filter_apples_sold(self):
         def by_apples_sold(_row_):
+            """ first-class function """
             return _row_.apples_sold >= 2
 
         self.filter(by_apples_sold)
+
+    def __private_method(self):
+        # blah ...
+        pass
 
     def __repr__(self):
         return '{} ({:,})'.format(self.__class__.__name__, self.num_rows)

@@ -104,7 +104,7 @@ def instantiate_lev(tab_name):
 
     a = lev.has_headers
     a = lev.headers
-    a = lev.header_values
+    a = lev.header_names
 
     # named ranges
     a = lev.named_ranges
@@ -156,7 +156,7 @@ def lev_subsections():
     lev_3 = share.worksheet_to_lev('subsections', c_1='<sect_3/>', c_2='<sect_3/>')
 
     a = lev_1.meta_headers
-    a = lev_1.meta_header_values
+    a = lev_1.meta_header_names
 
     a = lev_1.last_r
     b = lev_2.last_r
@@ -209,7 +209,7 @@ def iterate_primitive_rows():
     m = list(lev.rows('*f', 10))
 
     # build new matrix from filtered rows
-    m = [lev.header_values]
+    m = [lev.header_names]
     for r, row in enumerate(lev.rows('*f')):
         if r % 2 == 0:
             m.append(row)
@@ -254,7 +254,7 @@ def iterate_flux_rows():
     m = [row.values for row in lev]
 
     # build new matrix from filtered rows
-    m = [lev.header_values]
+    m = [lev.header_names]
     for r, row in enumerate(lev):
         if r % 2 == 0:
             m.append(row.values)
