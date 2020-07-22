@@ -3,14 +3,22 @@
     https://imgs.xkcd.com/comics/algorithms.png
     https://www.teampay.co/insights/biggest-excel-mistakes-of-all-time/
 
-    To begin doing any kind of iteration over the data, you'll spend a large amount of time
-    just finding range boundaries in the worksheets, determining where the last row
-    or last column is. It's also dangerous to references values by the arbitrary
+    To begin doing any kind of iteration over the data in Excel, you'll spend a large
+    amount of time just finding range boundaries in the worksheets: determining
+    where the last row or last column is.
+
+    It's also dangerous to references values by the arbitrary
     alphanumerical addresses (eg, Range("H23")), leaving you vulnerable
     whenever columns in the sheet are shifted or reordered.
-    ...
-        instead of more meaningful header names,
-    ...
+
+
+Excel
+    * Excel is the best application to verify and analyze results, spreadsheets beat text editors
+    * vengeance.excel_com package excludes Linux / macOS machines (tough cookies)
+
+excel_levity_cls:
+    * automatically tracks range boundaries
+    * applies semantic names to rows based on header names
 """
 
 from time import sleep
@@ -35,7 +43,10 @@ xlPink   = 9856255
 def main():
     version = vengeance.__version__
 
-    share.set_project_workbook(excel_app=None,
+    # excel_app = 'new'
+    excel_app = 'any'
+    # excel_app = 'empty'
+    share.set_project_workbook(excel_app,
                                read_only=True,
                                update_links=True)
 
@@ -61,7 +72,7 @@ def main():
     modify_range_values(iteration='fast')
 
     excel_object_model()
-    # allow_focus()
+    allow_worksheet_focus()
 
     # share.close_project_workbook(save=False)
 
@@ -74,7 +85,7 @@ def instantiate_lev(tab_name):
 
         anchor reference mnemonics:
             '*h': header
-            '*f': first
+            '*o': first
             '*l': last
             '*a': append
 
@@ -88,7 +99,7 @@ def instantiate_lev(tab_name):
 
     a = repr(lev)
 
-    a = lev.is_empty
+    a = lev.is_empty()
     a = lev.has_filter
 
     a = lev.num_cols
@@ -238,17 +249,17 @@ def iterate_flux_rows():
 
     for row in lev:
         a = row.address
-        a = row.names
+        a = row.header_names
         a = row.values
 
-        # a = row._view_as_array       # meant as a debugging tool in PyCharm
+        # a = row.as_array       # meant as a debugging tool in PyCharm
 
         if 'col_a' in lev.headers:
             a = row.col_a
             a = row['col_a']
             a = row[0]
 
-    m = list(lev.flux_rows(5, 10))
+    m = list(lev.lev_rows(5, 10))
 
     # extract primitive values
     m = [row.values for row in lev]
@@ -271,7 +282,7 @@ def iterate_excel_errors():
     for row in lev.rows(3, 3):
         a = row[-1]
 
-    for row in lev.flux_rows(3, 3):
+    for row in lev.lev_rows(3, 3):
         a = row.col_c
 
 
@@ -390,9 +401,9 @@ def write_formulas():
     # lev['col_b *f'] = '=(1 + 1)'
     # lev['col_c *f'] = '=(1 + 2)'
 
-    # lev['col_a 4'] = '=({}{} + 10)'.format(lev.headers['col_a'], lev.first_r)
-    # lev['col_b 4'] = '=({}{} + 20)'.format(lev.headers['col_b'], lev.first_r)
-    # lev['col_c 4'] = '=({}{} + 30)'.format(lev.headers['col_c'], lev.first_r)
+    # lev['col_a 4'] = '=({}{} + 10)'.format(lev.include_headers['col_a'], lev.first_r)
+    # lev['col_b 4'] = '=({}{} + 20)'.format(lev.include_headers['col_b'], lev.first_r)
+    # lev['col_c 4'] = '=({}{} + 30)'.format(lev.include_headers['col_c'], lev.first_r)
 
     lev['*f *h'] = [['col_a', 'col_b', 'col_c', 'col_d', 'col_e', 'col_f', 'col_h', 'col_i', 'col_j']]
 
@@ -421,11 +432,10 @@ def modify_range_values(iteration='slow'):
 
     if iteration == 'slow':
         ws = lev.worksheet
-
-        # .ScreenUpdating has a huge performance impact
-        lev.application.ScreenUpdating = True
         ws.Activate()
 
+        # ScreenUpdating has a huge performance impact (up to ~8x slower)
+        lev.application.ScreenUpdating = True
         # lev.application.ScreenUpdating = False
 
         for r in range(2, lev.last_r + 1):
@@ -450,12 +460,12 @@ def modify_range_values(iteration='slow'):
 
 
 def excel_object_model():
-    from vengeance.excel_com.worksheet import activate_sheet
+    from vengeance.excel_com.worksheet import activate_worksheet
     from vengeance.excel_com.worksheet import clear_worksheet_filter
 
     share.wb.Activate()
-    ws = vengeance.get_worksheet(share.wb, 'object model')
-    activate_sheet(ws)
+    ws = share.wb.Sheets['object model']
+    activate_worksheet(ws)
     ws.Range('B2:D10').Interior.Color = xlNone
 
     clear_worksheet_filter(ws)
@@ -493,15 +503,15 @@ def allow_worksheet_focus():
     setting this value to False allows processes to run without disrupting the user
     """
     print()
-    activate_all_sheets(allow_focus=False)
+    activate_all_worksheets(allow_focus=False)
 
     print()
-    activate_all_sheets(allow_focus=True)
+    activate_all_worksheets(allow_focus=True)
 
     excel_levity_cls.allow_focus = False
 
 
-def activate_all_sheets(allow_focus):
+def activate_all_worksheets(allow_focus):
     excel_levity_cls.allow_focus = allow_focus
     print('excel_levity_cls.allow_focus = {}'.format(allow_focus))
 
@@ -513,6 +523,6 @@ def activate_all_sheets(allow_focus):
         sleep(0.25)
 
 
-main()
-# exper()
+if __name__ == '__main__':
+    main()
 

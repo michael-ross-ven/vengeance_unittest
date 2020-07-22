@@ -3,13 +3,15 @@ import os
 
 from vengeance import open_workbook
 from vengeance import close_workbook
-from vengeance import get_worksheet
 from vengeance import flux_cls
 from vengeance import excel_levity_cls
 
 wb   = None
 levs = {}
-proj_dir = os.getcwd() + '\\files\\'
+files_dir = os.path.split(os.path.realpath(__file__))[0] + '\\files\\'
+
+if not os.path.exists(files_dir):
+    raise FileExistsError('whoops, need to modify files_dir')
 
 
 def set_project_workbook(excel_app='any',
@@ -18,11 +20,13 @@ def set_project_workbook(excel_app='any',
     global wb
 
     print()
-    wb = open_workbook(proj_dir + 'example.xlsm',
+    wb = open_workbook(files_dir + 'example.xlsm',
                        excel_app,
                        read_only=read_only,
                        update_links=update_links)
     print()
+
+    return wb
 
 
 def close_project_workbook(save=True):
@@ -68,20 +72,21 @@ def worksheet_to_lev(ws,
     if isinstance(ws, excel_levity_cls):
         return ws
 
-    if isinstance(ws, str) and (ws.lower() in ('sheet1', 'empty sheet')):
+    ws_name = worksheet_name()
+    if ws_name in ('sheet1', 'empty sheet'):
         header_r = 1
         meta_r   = 0
     elif c_1 is None:
         c_1 = 'B'
 
     if levs is not None:
-        k = (worksheet_name(), meta_r, header_r, c_1, c_2)
+        k = (ws_name, meta_r, header_r, c_1, c_2)
         if k in levs:
             return levs[k]
     else:
         k = None
 
-    ws = get_worksheet(wb, ws)
+    ws = wb.Sheets[ws_name]
     c_1, c_2 = columns_to_excel_address()
 
     lev = excel_levity_cls(ws,
