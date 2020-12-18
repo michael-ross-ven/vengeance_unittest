@@ -12,12 +12,12 @@ from string import ascii_lowercase
 from random import choices
 
 from vengeance import flux_cls
-from vengeance import print_performance
 from vengeance import print_runtime
 from vengeance import is_date
 
 from root.examples import excel_shared as share
 
+# from vengeance import print_performance
 # from line_profiler import LineProfiler
 # profiler = LineProfiler()
 
@@ -27,7 +27,7 @@ def main():
     version = vengeance.__version__
 
     # invalid_instantiations()
-    flux = instantiate_flux(num_rows=1_000,
+    flux = instantiate_flux(num_rows=1000,
                             num_cols=10,
                             len_values=5)
     write_to_file(flux)
@@ -107,10 +107,8 @@ def __random_matrix(num_rows=100,
                     num_cols=3,
                     len_values=3):
 
-    from vengeance import col_letter
-
     def column_name(i):
-        c = col_letter(i + 1).lower()
+        c = _col_letter(i + 1).lower()
         return 'col_{}'.format(c)
 
     def random_chars():
@@ -120,6 +118,20 @@ def __random_matrix(num_rows=100,
     m.extend([[random_chars() for _ in range(num_cols)]
                               for _ in range(num_rows)])
     return m
+
+
+def _col_letter(col_int):
+    """ convert column numbers to character representation """
+    if isinstance(col_int, str):
+        return col_int
+
+    col_str = ''
+    while col_int > 0:
+        c = (col_int - 1) % 26
+        col_str = chr(c + 65) + col_str
+        col_int = (col_int - c) // 26
+
+    return col_str
 
 
 def write_to_file(flux):
@@ -132,7 +144,7 @@ def write_to_file(flux):
 
 def read_from_file():
     """ class methods (flux_cls, not flux) """
-    flux = flux_cls.from_csv(share.files_dir + 'flux_file.csv')
+    flux = flux_cls.from_csv(share.files_dir + 'flux_file.csv', fkwargs={'nrows': 50})
     flux = flux_cls.from_json(share.files_dir + 'flux_file.json')
     flux = flux_cls.deserialize(share.files_dir + 'flux_file.flux')
 

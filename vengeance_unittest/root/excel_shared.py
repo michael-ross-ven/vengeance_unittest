@@ -1,10 +1,11 @@
 
 import os
 
-from vengeance import open_workbook
-from vengeance import close_workbook
+import vengeance as vgc
+# from vengeance import open_workbook
+# from vengeance import close_workbook
+# from vengeance import excel_levity_cls
 from vengeance import flux_cls
-from vengeance import excel_levity_cls
 
 wb   = None
 levs = {}
@@ -20,10 +21,10 @@ def set_project_workbook(excel_app='any',
     global wb
 
     print()
-    wb = open_workbook(files_dir + 'example.xlsm',
-                       excel_app,
-                       read_only=read_only,
-                       update_links=update_links)
+    wb = vgc.open_workbook(files_dir + 'example.xlsm',
+                           excel_app,
+                           read_only=read_only,
+                           update_links=update_links)
     print()
 
     return wb
@@ -35,7 +36,7 @@ def close_project_workbook(save=True):
     if wb is None:
         return
 
-    close_workbook(wb, save)
+    vgc.close_workbook(wb, save)
     wb = None
 
 
@@ -45,6 +46,8 @@ def worksheet_to_lev(ws,
                      header_r=2,
                      c_1=None,
                      c_2=None):
+    from vengeance import excel_levity_cls
+
     global wb
     global levs
 

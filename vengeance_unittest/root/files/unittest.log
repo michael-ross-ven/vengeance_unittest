@@ -1,5 +1,5 @@
-[2020-07-21 21:08:49,580] [DEBUG] debug 1
-[2020-07-21 21:08:49,580] [INFO] info
-[2020-07-21 21:08:49,580] [WARNING] warning
-[2020-07-21 21:08:49,580] [ERROR] error
-[2020-07-21 21:08:49,580] [CRITICAL] critical
+[2020-12-12 19:30:37,561] [DEBUG] unittest debug
+[2020-12-12 19:30:37,561] [INFO] unittest info
+[2020-12-12 19:30:37,561] [WARNING] unittest warning
+[2020-12-12 19:30:37,561] [ERROR] unittest error
+[2020-12-12 19:30:37,561] [CRITICAL] unittest critical

@@ -43,8 +43,8 @@ xlPink   = 9856255
 def main():
     version = vengeance.__version__
 
-    # excel_app = 'new'
-    excel_app = 'any'
+    excel_app = 'new'
+    # excel_app = 'any'
     # excel_app = 'empty'
     share.set_project_workbook(excel_app,
                                read_only=True,
@@ -74,7 +74,7 @@ def main():
     excel_object_model()
     allow_worksheet_focus()
 
-    # share.close_project_workbook(save=False)
+    share.close_project_workbook(save=False)
 
 
 def instantiate_lev(tab_name):
