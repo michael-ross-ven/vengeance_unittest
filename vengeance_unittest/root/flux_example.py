@@ -6,11 +6,10 @@ flux_cls
     * when vectorization gets too complicated, and you need (or want)
       efficient row-major iteration
 """
-import vengeance
-
 from string import ascii_lowercase
 from random import choices
 
+import vengeance as vgc
 from vengeance import flux_cls
 from vengeance import print_runtime
 from vengeance import is_date
@@ -24,7 +23,7 @@ from root.examples import excel_shared as share
 
 @print_runtime
 def main():
-    version = vengeance.__version__
+    version = vgc.__version__
 
     # invalid_instantiations()
     flux = instantiate_flux(num_rows=1000,
@@ -139,19 +138,46 @@ def write_to_file(flux):
     flux.to_json(share.files_dir + 'flux_file.json')
     flux.serialize(share.files_dir + 'flux_file.flux')
 
+    # .to_file() can be used as universal function
+    # flux.to_file(share.files_dir + 'flux_file.csv')
+    # flux.to_file(share.files_dir + 'flux_file.json')
+    # flux.to_file(share.files_dir + 'flux_file.flux')
+
+    # specify encoding
+    # flux.to_csv(share.files_dir + 'flux_file.csv', 'utf-8-sig')
+    # flux.to_json(share.files_dir + 'flux_file.json', 'utf-8-sig')
+
     pass
 
 
 def read_from_file():
     """ class methods (flux_cls, not flux) """
-    flux = flux_cls.from_csv(share.files_dir + 'flux_file.csv', fkwargs={'nrows': 50})
+
+    flux = flux_cls.from_csv(share.files_dir + 'flux_file.csv')
     flux = flux_cls.from_json(share.files_dir + 'flux_file.json')
     flux = flux_cls.deserialize(share.files_dir + 'flux_file.flux')
+
+    # .from_file() can be used as universal function
+    # flux = flux_cls.from_file(share.files_dir + 'flux_file.csv')
+    # flux = flux_cls.from_file(share.files_dir + 'flux_file.json')
+    # flux = flux_cls.from_file(share.files_dir + 'flux_file.flux')
+
+    # specify encoding
+    # flux = flux_cls.from_csv(share.files_dir + 'flux_file.csv', 'utf-8-sig')
+    # flux = flux_cls.from_json(share.files_dir + 'flux_file.json', 'utf-8-sig')
+
+    # fkwargs: used to specifty arguments to how file is read, such as: strict, lineterminator, ensure_ascii, etc
+    # flux = flux_cls.from_csv(share.files_dir + 'flux_file.csv', fkwargs={})
+    # nrows: reads a restricted number of rows from csv file
+    # flux = flux_cls.from_csv(share.files_dir + 'flux_file.csv', fkwargs={'nrows': 50})
 
     pass
 
 
 def read_from_excel():
+    #
+    assert vgc.loads_excel_module is True
+
     if share.wb is None:
         share.set_project_workbook(read_only=True)
 
@@ -176,6 +202,10 @@ def write_to_excel(flux):
 def modify_columns(flux):
     flux = flux.copy()
     # flux = flux.copy_deep()
+
+    # extract column values
+    col = flux['col_b']
+    col = list(col)
 
     flux.rename_columns({'col_a': 'renamed_a',
                          'col_b': 'renamed_b'})
@@ -220,14 +250,16 @@ def modify_columns(flux):
 
     assert flux.num_rows >= 5
 
-    # make some jagged rows
+    # check repr
     flux_repr_a = repr(flux)
     row_repr_a  = repr(flux.matrix[1])
 
+    # make some jagged rows
     flux.matrix[1].values[0] = '#err'
     del flux.matrix[1].values[1:]
     flux.matrix[2].values.extend(['#err', '#err'])
 
+    # check repr again with jagged rows
     flux_repr_b = repr(flux)
     row_repr_b  = repr(flux.matrix[1])
 
@@ -601,7 +633,7 @@ def flux_subclass():
 
     flux.execute_commands(flux.commands)
 
-    # profiler: useful for helping to debug any performance issues
+    # profiler: useful for helping to debug any profile_methods issues
     # flux.execute_commands(flux.commands, profiler=True)
     # flux.execute_commands(flux.commands, profiler='line_profiler')
     # flux.execute_commands(flux.commands, profiler='print_runtime')

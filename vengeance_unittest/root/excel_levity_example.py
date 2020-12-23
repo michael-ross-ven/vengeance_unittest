@@ -434,7 +434,7 @@ def modify_range_values(iteration='slow'):
         ws = lev.worksheet
         ws.Activate()
 
-        # ScreenUpdating has a huge performance impact (up to ~8x slower)
+        # ScreenUpdating has a huge profile_methods impact (up to ~8x slower)
         lev.application.ScreenUpdating = True
         # lev.application.ScreenUpdating = False
 
