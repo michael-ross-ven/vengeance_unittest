@@ -1,14 +1,20 @@
 
 import os
 
+from typing import Any
 import vengeance as vgc
 # from vengeance import open_workbook
 # from vengeance import close_workbook
 # from vengeance import excel_levity_cls
 from vengeance import flux_cls
 
-wb   = None
-levs = {}
+''' :types: '''
+wb:      Any
+wb_levs: (None, dict)
+
+wb        = None
+# wb_levs   = None
+wb_levs   = {}
 files_dir = os.path.split(os.path.realpath(__file__))[0] + '\\files\\'
 
 if not os.path.exists(files_dir):
@@ -25,8 +31,6 @@ def set_project_workbook(excel_app='any',
                            excel_app,
                            read_only=read_only,
                            update_links=update_links)
-    print()
-
     return wb
 
 
@@ -40,16 +44,16 @@ def close_project_workbook(save=True):
     wb = None
 
 
-def worksheet_to_lev(ws,
-                     *,
-                     meta_r=1,
-                     header_r=2,
+def worksheet_to_lev(ws, *,
+                     m_r=1,
+                     h_r=2,
                      c_1=None,
                      c_2=None):
+
     from vengeance import excel_levity_cls
 
-    global wb
-    global levs
+    if isinstance(ws, excel_levity_cls):
+        return ws
 
     # region {closure functions}
     def worksheet_name():
@@ -61,68 +65,68 @@ def worksheet_to_lev(ws,
 
         return ws
 
-    def columns_to_excel_address():
-        """ convert c_1, c_2 to address by indexing header row and meta row in worksheet """
+    def worksheet_headers():
         headers = {}
-        if (c_1 or c_2) and header_r:
-            headers.update(excel_levity_cls.index_headers(ws, header_r))
-        if (c_1 or c_2) and meta_r:
-            headers.update(excel_levity_cls.index_headers(ws, meta_r))
+        if h_r:
+            headers.update(excel_levity_cls.index_headers(ws, h_r))
+        if m_r:
+            headers.update(excel_levity_cls.index_headers(ws, m_r))
 
-        return headers.get(c_1, c_1), headers.get(c_2, c_2)
+        return headers
     # endregion
 
-    if isinstance(ws, excel_levity_cls):
-        return ws
+    global wb
+    global wb_levs
 
     ws_name = worksheet_name()
     if ws_name in ('sheet1', 'empty sheet'):
-        header_r = 1
-        meta_r   = 0
+        h_r = 1
+        m_r = 0
     elif c_1 is None:
         c_1 = 'B'
 
-    if levs is not None:
-        k = (ws_name, meta_r, header_r, c_1, c_2)
-        if k in levs:
-            return levs[k]
-    else:
-        k = None
+    lev_key = (ws_name,
+               m_r, h_r,
+               c_1, c_2)
+    is_cached = isinstance(wb_levs, dict)
 
-    ws = wb.Sheets[ws_name]
-    c_1, c_2 = columns_to_excel_address()
+    if is_cached and lev_key in wb_levs:
+        return wb_levs[lev_key]
+
+    if wb is None:
+        wb = set_project_workbook(read_only=True)
+
+    ws   = wb.Sheets[ws_name]
+    ws_h = worksheet_headers()
+    c_1  = ws_h.get(c_1, c_1)
+    c_2  = ws_h.get(c_2, c_2)
 
     lev = excel_levity_cls(ws,
-                           meta_r=meta_r,
-                           header_r=header_r,
+                           meta_r=m_r,
+                           header_r=h_r,
                            first_c=c_1,
                            last_c=c_2)
 
-    if levs is not None:
-        levs[k] = lev
+    if is_cached:
+        wb_levs[lev_key] = lev
 
     return lev
 
 
-def worksheet_to_flux(ws,
-                      *,
-                      meta_r=1,
-                      header_r=2,
+def worksheet_to_flux(ws, *,
+                      m_r=1,
+                      h_r=2,
                       c_1=None,
-                      c_2=None):
+                      c_2=None) -> flux_cls:
 
-    lev = worksheet_to_lev(ws,
-                           meta_r=meta_r,
-                           header_r=header_r,
-                           c_1=c_1,
-                           c_2=c_2)
+    lev = worksheet_to_lev(ws, m_r=m_r, h_r=h_r,
+                               c_1=c_1, c_2=c_2)
     return flux_cls(lev)
 
 
-def write_to_worksheet(ws,
-                       m,
+def write_to_worksheet(ws, m, *,
                        r_1='*h',
-                       c_1='B',
+                       c_1=None,
                        c_2=None):
 
     lev = worksheet_to_lev(ws, c_1=c_1, c_2=c_2)
@@ -130,7 +134,9 @@ def write_to_worksheet(ws,
 
     was_filtered = lev.has_filter
 
-    if r_1 != '*a':
+    if r_1 == '*a' and not lev.is_empty:
+        m = list(m)[1:]
+    else:
         lev.clear('*f %s:*l *l' % r_1)
 
     lev['*f %s' % r_1] = m
