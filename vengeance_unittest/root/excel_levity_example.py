@@ -401,9 +401,9 @@ def write_formulas():
     # lev['col_b *f'] = '=(1 + 1)'
     # lev['col_c *f'] = '=(1 + 2)'
 
-    # lev['col_a 4'] = '=({}{} + 10)'.format(lev.include_headers['col_a'], lev.first_r)
-    # lev['col_b 4'] = '=({}{} + 20)'.format(lev.include_headers['col_b'], lev.first_r)
-    # lev['col_c 4'] = '=({}{} + 30)'.format(lev.include_headers['col_c'], lev.first_r)
+    # lev['col_a 4'] = '=({}{} + 10)'.format(lev.headers['col_a'], lev.first_r)
+    # lev['col_b 4'] = '=({}{} + 20)'.format(lev.headers['col_b'], lev.first_r)
+    # lev['col_c 4'] = '=({}{} + 30)'.format(lev.headers['col_c'], lev.first_r)
 
     lev['*f *h'] = [['col_a', 'col_b', 'col_c', 'col_d', 'col_e', 'col_f', 'col_h', 'col_i', 'col_j']]
 
