@@ -106,6 +106,20 @@ def instantiate_flux(num_rows=100,
                      num_cols=3,
                      len_values=3):
 
+    class some_cls:
+        def __init__(self, v_a, v_b, v_c):
+            self.col_a = v_a
+            self.col_b = v_b
+            self.col_c = v_c
+
+        @property
+        def property(self):
+            return self.col_a
+
+        def method(self):
+            return self.col_a
+
+
     # matrix organized like csv data, column names are provided in first row
     m = __random_matrix(num_rows, num_cols, len_values)
     flux = flux_cls(m)
@@ -124,6 +138,10 @@ def instantiate_flux(num_rows=100,
     a = flux.is_jagged()
     a = flux.min_num_cols
     a = flux.max_num_cols
+
+    # __init__ from objects
+    m = [some_cls('a', 'b', 'c') for _ in range(10)]
+    flux = flux_cls(m)
 
     return flux
 
@@ -296,8 +314,7 @@ def flux_aggregation_methods(flux):
 
     # .contiguous()
     #   group rows where *adjacent* values are identical
-    items = flux.contiguous('col_a')
-    rows  = [flux.matrix[i_1:i_2+1] for _, i_1, i_2 in items]
+    items = list(flux.contiguous('col_a'))
 
     pass
 
@@ -413,7 +430,7 @@ def flux_jagged_rows(flux):
     flux_repr_a = repr(flux)
     row_repr_a  = repr(flux.matrix[1])
 
-    # make some jagged rows
+    # make some  rows
     flux.matrix[1].values[0] = '#err'
     del flux.matrix[1].values[1:]
     flux.matrix[2].values.extend(['#err', '#err'])
@@ -432,7 +449,8 @@ def flux_jagged_rows(flux):
         c_1 = flux.num_cols
         c_2 = flux.min_num_cols
         c_3 = flux.max_num_cols
-        a = list(flux.identify_jagged_rows())
+        a = list(flux.jagged_rows())
+        pass
 
 
 def flux_column_methods(flux):
@@ -497,6 +515,12 @@ def flux_column_values(flux):
 
     a, b, c = flux.columns('col_a', 'col_b', 'col_c')
 
+    # append a new column
+    flux['append_d'] = [['new'] for _ in range(flux.num_rows)]
+
+    # insert a new column
+    flux[(0, 'insert_a')] = [['a'] for _ in range(flux.num_rows)]
+
     # set existing values from another column
     flux['col_a'] = flux['col_b']
     # append to a new column
@@ -522,14 +546,7 @@ def flux_column_values(flux):
 
     flux['r_i'] = range(1, len(flux.matrix))
 
-    flux['col_a'] = flux['col_b']
-    flux['col_a'] = [['a'] for _ in range(flux.num_rows)]
-
-    # append a new column
-    flux['append_d'] = [['new'] for _ in range(flux.num_rows)]
-
-    # insert a new column
-    # flux[(0, 'insert_a')] = [['a'] for _ in range(flux.num_rows)]
+    pass
 
 
 def flux_join():
@@ -573,6 +590,9 @@ def write_to_file(flux):
     flux.to_csv(share.files_dir + 'flux_file.csv')
     flux.to_json(share.files_dir + 'flux_file.json')
     flux.serialize(share.files_dir + 'flux_file.flux')
+
+    # json (no path argument)
+    # json_str = flux.to_json()
 
     # .to_file()
     # flux.to_file(share.files_dir + 'flux_file.csv')

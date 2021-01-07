@@ -289,17 +289,17 @@ def iterate_excel_errors():
 def convert_to_flux():
     """
     lev  = share.worksheet_to_lev('Sheet1')
-    flux_a = flux_cls(lev)
+    flux = flux_cls(lev)
         or
-    flux_a = share.worksheet_to_flux('Sheet1')
+    flux = share.worksheet_to_flux('Sheet1')
     """
     lev  = share.worksheet_to_lev('Sheet1')
     flux = flux_cls(lev)
 
-    # flux_a = share.worksheet_to_flux('Sheet1')
+    # flux = share.worksheet_to_flux('Sheet1')
 
     for row in flux:
-        row.col_a = 'from flux_a'
+        row.col_a = 'from flux'
 
     lev['*f *h'] = flux
 
@@ -334,9 +334,9 @@ def write_values():
     # or use helper function
     share.write_to_worksheet('Sheet2', m)
 
-    # write from flux_a
-    # flux_a = share.worksheet_to_flux('Sheet1')
-    # share.write_to_worksheet('Sheet2', flux_a)
+    # write from flux
+    # flux = share.worksheet_to_flux('Sheet1')
+    # share.write_to_worksheet('Sheet2', flux)
 
     # Excel dates
     a = lev['excel_date'].Value
@@ -366,7 +366,7 @@ def write_values_from_lev():
     # or use helper function
     share.write_to_worksheet(lev_2, lev_1)
 
-    # write from flux_a
+    # write from flux
     flux = share.worksheet_to_flux('Sheet1')
     share.write_to_worksheet('Sheet2', flux)
 
@@ -425,8 +425,8 @@ def modify_range_values(iteration='slow'):
     this is painfully slow for win32com remote procedure calls
 
     value extraction into flux_cls can also be used for more complex transformations
-        flux_a = share.worksheet_to_flux('Sheet1')
-        lev['*f *f'] = flux_a
+        flux = share.worksheet_to_flux('Sheet1')
+        lev['*f *f'] = flux
     """
     lev = share.worksheet_to_lev('Sheet1')
 

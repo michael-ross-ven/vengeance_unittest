@@ -1,2 +1,3 @@
+.gitignore
 /vengeance_unittest/root/.idea
 /vengeance_unittest/root/__pycache__
