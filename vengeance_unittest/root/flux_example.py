@@ -127,8 +127,11 @@ def instantiate_flux(num_rows=100,
     a = repr(flux)
 
     a = flux.headers
-    a = flux.header_names
-    a = flux.as_preview
+    a = flux.header_names()
+
+    # help(flux.as_array)
+    a = flux.as_array(0, 10)
+    b = flux.as_array(-10)
 
     a = flux.is_empty()
     a = flux.num_rows
@@ -136,8 +139,6 @@ def instantiate_flux(num_rows=100,
 
     # flux.min_num_cols will differ from flux.min_num_cols when matrix is jagged
     a = flux.is_jagged()
-    a = flux.min_num_cols
-    a = flux.max_num_cols
 
     # __init__ from objects
     m = [some_cls('a', 'b', 'c') for _ in range(10)]
@@ -176,14 +177,19 @@ def iterate_flux_rows(flux):
     m = [row.namedrow() for row in flux]
     m = list(flux.namedrows())
 
-    # *** for row in flux: *** preferred iteration syntax
+    a = flux.as_array(-10)            # to help with debugging: triggers a special view in PyCharm
+
+    # preferred iteration syntax
+    #   *** for row in flux: ***
+
     for row in flux:
         # help(row.as_array)            # to help with debugging: triggers a special view in PyCharm
-        i = row.i                       # .i attribute added by flux.label_row_indices()
+        a = row.as_array
+        i = row.r_i                     # .r_i attribute added by flux.label_row_indices()
 
         # a = row.is_header_row()
         a = row.headers
-        a = row.header_names
+        a = row.header_names()
         a = row.values
 
         a = row.dict()
@@ -247,7 +253,7 @@ def iterate_primitive_rows(flux):
     m = [row.dict() for row in flux]
 
     # build new matrix of primitive values
-    m = [flux.header_names]
+    m = [flux.header_names()]
     for r, row in enumerate(flux, 1):
         if r % 2 == 0 and row[0].startswith('a'):
             m.append(row.values)
@@ -276,6 +282,7 @@ def flux_aggregation_methods(flux):
     # **********************************************************************
     # index_row()  renamed to .map_rows()
     # index_rows() renamed to .map_rows_append()
+
     # a = flux.index_row('col_a')
     # a = flux.index_rows('col_a')
 
@@ -396,9 +403,9 @@ def flux_row_methods(flux):
     flux_a.insert_rows(5, rows[:3])
 
     # inserting rows at index 0 will overwrite existing headers
-    a = flux_a.header_names
+    a = flux_a.header_names()
     flux_a.insert_rows(0, [hdrs] + rows)
-    b = flux_a.header_names
+    b = flux_a.header_names()
 
     assert a != b
 
@@ -426,18 +433,22 @@ def flux_row_methods(flux):
 def flux_jagged_rows(flux):
     flux = flux.copy()
 
+    i = 4
+
+    as_array_a = flux.as_array()
+
     # check repr
     flux_repr_a = repr(flux)
-    row_repr_a  = repr(flux.matrix[1])
+    row_repr_a  = repr(flux.matrix[i])
 
-    # make some  rows
-    flux.matrix[1].values[0] = '#err'
-    del flux.matrix[1].values[1:]
-    flux.matrix[2].values.extend(['#err', '#err'])
+    # make some jagged rows
+    flux.matrix[i].values = ['#err']
+    flux.matrix[i + 2].values.extend(['#err', '#err'])
+    assert flux.is_jagged()
 
     # check repr again with jagged rows
     flux_repr_b = repr(flux)
-    row_repr_b  = repr(flux.matrix[1])
+    row_repr_b  = repr(flux.matrix[i])
 
     assert '🗲jagged🗲' not in flux_repr_a
     assert '🗲jagged🗲' not in row_repr_a
@@ -445,16 +456,16 @@ def flux_jagged_rows(flux):
     assert '🗲jagged🗲' in flux_repr_b
     assert '🗲jagged🗲' in row_repr_b
 
-    if flux.is_jagged():
-        c_1 = flux.num_cols
-        c_2 = flux.min_num_cols
-        c_3 = flux.max_num_cols
-        a = list(flux.jagged_rows())
-        pass
+    a = list(flux.jagged_rows())
+
+    as_array_b = flux.as_array()
+    assert repr(as_array_a) != repr(as_array_b)
+
+    pass
 
 
 def flux_column_methods(flux):
-    flux = flux.copy()
+    flux_b = flux.copy()
     # flux = flux.copy(deep=True)
 
     flux.rename_columns({'col_a': 'renamed_a',
@@ -478,6 +489,9 @@ def flux_column_methods(flux):
                          'renamed_b': 'col_b'})
 
     # encapsulate insertion, deletion and renaming of columns within single function
+    flux = instantiate_flux(num_rows=5,
+                            num_cols=5,
+                            len_values=3)
     flux.matrix_by_headers('col_c',
                            'col_b',
                            {'col_a': 'renamed_a'},
@@ -487,6 +501,9 @@ def flux_column_methods(flux):
                            '(inserted_c)')
 
     # return new flux_cls from matrix_by_headers()
+    flux = instantiate_flux(num_rows=5,
+                            num_cols=5,
+                            len_values=3)
     flux_b = flux.copy().matrix_by_headers({'col_c': 'renamed_c'},
                                            {'col_c': 'renamed_d'},
                                            '(inserted_a)')
@@ -517,7 +534,6 @@ def flux_column_values(flux):
 
     # append a new column
     flux['append_d'] = [['new'] for _ in range(flux.num_rows)]
-
     # insert a new column
     flux[(0, 'insert_a')] = [['a'] for _ in range(flux.num_rows)]
 
@@ -591,7 +607,7 @@ def write_to_file(flux):
     flux.to_json(share.files_dir + 'flux_file.json')
     flux.serialize(share.files_dir + 'flux_file.flux')
 
-    # json (no path argument)
+    # .to_json() with no path argument returns a json string
     # json_str = flux.to_json()
 
     # .to_file()
@@ -622,10 +638,10 @@ def read_from_file():
     # flux = flux_cls.from_csv(share.files_dir + 'flux_file.csv', 'utf-8-sig')
     # flux = flux_cls.from_json(share.files_dir + 'flux_file.json', 'utf-8-sig')
 
-    # fkwargs: used to specifty arguments to how file is read, such as: strict, lineterminator, ensure_ascii, etc
-    # flux = flux_cls.from_csv(share.files_dir + 'flux_file.csv', fkwargs={})
+    # additional kw arguments control how file is read, such as: strict, lineterminator, ensure_ascii, etc
+    # flux = flux_cls.from_csv(share.files_dir + 'flux_file.csv', strict=False, lineterminator='\r')
     # nrows: reads a restricted number of rows from csv file
-    # flux = flux_cls.from_csv(share.files_dir + 'flux_file.csv', fkwargs={'nrows': 50})
+    # flux = flux_cls.from_csv(share.files_dir + 'flux_file.csv', nrows=50})
 
     pass
 
@@ -676,6 +692,7 @@ def flux_subclass():
          ['id-004', 'chris', 2, 1, '2019-06-28'],
          ['id-005',  None,   7, 1,  None]]
     flux = flux_custom_cls(m)
+    flux.append_columns('mike')
 
     # print(flux_custom_cls.commands)
     # a = repr(flux)
@@ -775,9 +792,6 @@ def __random_matrix(num_rows=100,
     # region {closure functions}
     def col_letter(col_int):
         """ convert column numbers to character representation """
-        if isinstance(col_int, str):
-            return col_int
-
         col_str = ''
         while col_int > 0:
             c = (col_int - 1) % 26
@@ -794,9 +808,9 @@ def __random_matrix(num_rows=100,
         return ''.join(choices(ascii_lowercase, k=len_values))
     # endregion
 
-    m = [[column_name(i) for i in range(num_cols)]]             # header
-    m.extend([[random_chars() for _ in range(num_cols)]         # data
-                              for _ in range(num_rows)])
+    m = ([[column_name(i) for i in range(num_cols)]] +      # header row
+         [[random_chars() for _ in range(num_cols)]         # data
+                          for _ in range(num_rows)])
     return m
 
 
