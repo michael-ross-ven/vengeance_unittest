@@ -6,9 +6,6 @@ flux_cls
     * when vectorization gets too complicated, and you need (or want)
       efficient row-major iteration
 """
-from string import ascii_lowercase
-from random import choices
-
 import vengeance as ven
 from vengeance import flux_cls
 from vengeance import print_runtime
@@ -121,7 +118,7 @@ def instantiate_flux(num_rows=100,
 
 
     # matrix organized like csv data, column names are provided in first row
-    m = __random_matrix(num_rows, num_cols, len_values)
+    m = share.random_matrix(num_rows, num_cols, len_values)
     flux = flux_cls(m)
 
     a = repr(flux)
@@ -143,6 +140,8 @@ def instantiate_flux(num_rows=100,
     # __init__ from objects
     m = [some_cls('a', 'b', 'c') for _ in range(10)]
     flux = flux_cls(m)
+
+
 
     return flux
 
@@ -277,12 +276,8 @@ def flux_aggregation_methods(flux):
     a = flux.unique('col_a')
     a = flux.unique('col_a', 'col_b')
 
-    # **********************************************************************
-    # * map rows by column
-    # **********************************************************************
     # index_row()  renamed to .map_rows()
     # index_rows() renamed to .map_rows_append()
-
     # a = flux.index_row('col_a')
     # a = flux.index_rows('col_a')
 
@@ -309,11 +304,16 @@ def flux_aggregation_methods(flux):
     d = flux.map_rows('col_a', 'col_b', rowtype='namedrow')
     d = flux.map_rows('col_a', 'col_b', rowtype='namedtuple')
 
-    flux['value_a'] = [100.0] * len(flux)
+    # shared address locations
+    m = share.random_matrix(0) + \
+        [['same_address_a', 'same_address_b', 'same_address_c']] * 1_000
+    flux_b = flux_cls(m)
 
-    # **********************************************************************
-    # * countif / sumif
-    # **********************************************************************
+    flux_b.label_row_indices()
+    d = flux_b.map_rows_append(lambda row: id(row.values))
+    flux_b.matrix[1].col_a = 'm'
+
+    flux['value_a'] = [100.0] * len(flux)
     d = flux.map_rows_append('col_a', 'col_b')
     countifs = {k: len(rows) for k, rows in d.items()}
     sumifs   = {k: sum([row.value_a for row in rows])
@@ -393,7 +393,7 @@ def flux_row_methods(flux):
     flux_a = flux.copy()
     flux_b = flux.copy()
 
-    hdrs = __random_matrix(0, num_cols=flux.num_cols)[0]
+    hdrs = share.random_matrix(0, num_cols=flux.num_cols)[0]
     hdrs = [h + '_new' for h in hdrs]
     rows = [['new' for _ in range(flux.num_cols)]
                    for _ in range(10)]
@@ -710,7 +710,9 @@ def flux_subclass():
 class flux_custom_cls(flux_cls):
 
     # high-level summary of state transformations
-    commands = ['_sort',
+    commands = ('_sort',
+                ('sort', ('apples_sold', 'apples_bought'),
+                         {'reverse': [False, True]}),
                 '_replace_null_names',
                 '_convert_dates',
                 '_count_unique_names',
@@ -719,7 +721,7 @@ class flux_custom_cls(flux_cls):
                                     'apple_brand',
                                     'revenue',
                                     'apple_bonus'))
-                ]
+                )
 
     def __init__(self, matrix):
         super().__init__(matrix)
@@ -783,35 +785,6 @@ def attribute_access_performance(flux):
         row.col_c = row.col_c
 
         # row.values = [None] * len(row)
-
-
-def __random_matrix(num_rows=100,
-                    num_cols=3,
-                    len_values=3):
-
-    # region {closure functions}
-    def col_letter(col_int):
-        """ convert column numbers to character representation """
-        col_str = ''
-        while col_int > 0:
-            c = (col_int - 1) % 26
-            col_str = chr(c + 65) + col_str
-            col_int = (col_int - c) // 26
-
-        return col_str
-
-    def column_name(i):
-        c = col_letter(i + 1).lower()
-        return 'col_{}'.format(c)
-
-    def random_chars():
-        return ''.join(choices(ascii_lowercase, k=len_values))
-    # endregion
-
-    m = ([[column_name(i) for i in range(num_cols)]] +      # header row
-         [[random_chars() for _ in range(num_cols)]         # data
-                          for _ in range(num_rows)])
-    return m
 
 
 if __name__ == '__main__':

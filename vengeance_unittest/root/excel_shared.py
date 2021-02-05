@@ -21,6 +21,57 @@ if not os.path.exists(files_dir):
     raise FileExistsError('whoops, need to modify files_dir')
 
 
+# noinspection PyTypeChecker,DuplicatedCode
+def random_matrix(num_rows=100,
+                  num_cols=3,
+                  len_values=3):
+
+    from string import ascii_lowercase
+    from random import choices
+    from random import uniform
+
+    # region {closure functions}
+    def header_name(ci):
+        cs = ''
+        while ci > 0:
+            ci_2 = (ci - 1) % 26
+            cs   = chr(ci_2 + 97) + cs
+            ci   = (ci - ci_2) // 26
+
+        return 'col_{}'.format(cs)
+
+    def random_chars():
+        return ''.join(choices(ascii_lowercase, k=len_values))
+
+    def string(i):
+        return ''.join(chr(i + 97) * len_values)
+
+    def random_numbers():
+        return round(uniform(0, 9), len_values)
+    # endregion
+
+    # a = header_name(100)
+
+    # m = [[header_name(i + 1) for i in range(num_cols)]] + \
+    #     [[random_chars() for _ in range(num_cols)]
+    #                      for _ in range(num_rows)]
+
+    # m = [[header_name(i + 1) for i in range(num_cols)]] + \
+    #     [[random_numbers() for _ in range(num_cols)]
+    #                        for _ in range(num_rows)]
+
+    # m = [[header_name(i + 1) for i in range(num_cols)]] + \
+    #     [[string(i) for i in range(num_cols)]
+    #                 for _ in range(num_rows)]
+
+    m = [[header_name(i + 1)           for i in range(num_cols)]] + \
+        [[random_numbers()] * num_cols for _ in range(num_rows)]
+
+    # m = tuple(tuple(row) for row in m)
+
+    return m
+
+
 def set_project_workbook(excel_app='any',
                          read_only=False,
                          update_links=True):
@@ -129,20 +180,21 @@ def write_to_worksheet(ws, m, *,
                        c_1=None,
                        c_2=None):
 
+    from vengeance.util.iter import is_header_row
+
     lev = worksheet_to_lev(ws, c_1=c_1, c_2=c_2)
     lev.activate()
 
-    was_filtered = lev.has_filter
-
     if r_1 == '*a' and not lev.is_empty:
-        m = list(m)[1:]
+        m = tuple(m)
+        if is_header_row(m[0], lev.header_names()):
+            m = m[1:]
     else:
         lev.clear('*f %s:*l *l' % r_1)
 
     lev['*f %s' % r_1] = m
 
-    if was_filtered:
-        lev.reapply_filter()
+
 
 
 
