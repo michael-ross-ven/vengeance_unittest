@@ -52,9 +52,9 @@ def random_matrix(num_rows=100,
 
     # a = header_name(100)
 
-    # m = [[header_name(i + 1) for i in range(num_cols)]] + \
-    #     [[random_chars() for _ in range(num_cols)]
-    #                      for _ in range(num_rows)]
+    m = [[header_name(i + 1) for i in range(num_cols)]] + \
+        [[random_chars() for _ in range(num_cols)]
+                         for _ in range(num_rows)]
 
     # m = [[header_name(i + 1) for i in range(num_cols)]] + \
     #     [[random_numbers() for _ in range(num_cols)]
@@ -64,8 +64,8 @@ def random_matrix(num_rows=100,
     #     [[string(i) for i in range(num_cols)]
     #                 for _ in range(num_rows)]
 
-    m = [[header_name(i + 1)           for i in range(num_cols)]] + \
-        [[random_numbers()] * num_cols for _ in range(num_rows)]
+    # m = [[header_name(i + 1)           for i in range(num_cols)]] + \
+    #     [[random_numbers()] * num_cols for _ in range(num_rows)]
 
     # m = tuple(tuple(row) for row in m)
 

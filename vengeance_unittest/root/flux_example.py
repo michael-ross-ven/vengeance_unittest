@@ -7,9 +7,12 @@ flux_cls
       efficient row-major iteration
 """
 import vengeance as ven
+
+from collections import namedtuple
 from vengeance import flux_cls
 from vengeance import print_runtime
 from vengeance import is_date
+from vengeance.util.text import vengeance_message
 
 from root.examples import excel_shared as share
 
@@ -20,10 +23,9 @@ from root.examples import excel_shared as share
 
 @print_runtime
 def main():
-    version = ven.__version__
+    # print(vengeance_message('vengeance {}, {}'.format(ven.__version__, ven.__release__)))
 
-    # invalid_instantiations()
-    flux = instantiate_flux(num_rows=50,
+    flux = instantiate_flux(num_rows=20,
                             num_cols=10,
                             len_values=5)
 
@@ -103,6 +105,9 @@ def instantiate_flux(num_rows=100,
                      num_cols=3,
                      len_values=3):
 
+
+    some_namedtuple = namedtuple('some_namedtuple', ('col_a', 'col_b', 'col_c'))
+
     class some_cls:
         def __init__(self, v_a, v_b, v_c):
             self.col_a = v_a
@@ -116,10 +121,19 @@ def instantiate_flux(num_rows=100,
         def method(self):
             return self.col_a
 
+    # invalid_instantiations()
 
     # matrix organized like csv data, column names are provided in first row
     m = share.random_matrix(num_rows, num_cols, len_values)
     flux = flux_cls(m)
+
+    # __init__ from objects
+    m = [some_cls('a', 'b', 'c') for _ in range(3)]
+    flux_b = flux_cls(m)
+
+    # __init__ from namedtuples
+    m = [some_namedtuple('a', 'b', 'c') for _ in range(3)]
+    flux_b = flux_cls(m)
 
     a = repr(flux)
 
@@ -130,18 +144,11 @@ def instantiate_flux(num_rows=100,
     a = flux.as_array(0, 10)
     b = flux.as_array(-10)
 
-    a = flux.is_empty()
     a = flux.num_rows
     a = flux.num_cols
 
-    # flux.min_num_cols will differ from flux.min_num_cols when matrix is jagged
+    a = flux.is_empty()
     a = flux.is_jagged()
-
-    # __init__ from objects
-    m = [some_cls('a', 'b', 'c') for _ in range(10)]
-    flux = flux_cls(m)
-
-
 
     return flux
 
