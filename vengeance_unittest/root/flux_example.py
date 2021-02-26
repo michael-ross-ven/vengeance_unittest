@@ -25,7 +25,7 @@ from root.examples import excel_shared as share
 def main():
     # print(vengeance_message('vengeance {}, {}'.format(ven.__version__, ven.__release__)))
 
-    flux = instantiate_flux(num_rows=20,
+    flux = instantiate_flux(num_rows=50,
                             num_cols=10,
                             len_values=5)
 
@@ -55,8 +55,8 @@ def main():
 
 def invalid_instantiations():
     """
-    1) matrix must not be one-dimensional
-    2) there are certain reserved column names that cannot appear as
+    1) matrix must have at least 2 dimensions
+    2) certain reserved column names cannot appear as
     dynamic column names in matrix, eg
         __bool__
         __dict__
@@ -76,11 +76,11 @@ def invalid_instantiations():
         reserved_names
         values
     """
-    # from vengeance.classes.flux_row_cls import flux_row_cls
+    from vengeance.classes.flux_row_cls import flux_row_cls
 
-    # reserved = flux_row_cls.reserved_names()
-    # reserved = '\n'.join(reserved)
-    # print('reserved header names: \n{}'.format(reserved))
+    reserved = flux_row_cls.reserved_names()
+    reserved = '\n'.join(reserved)
+    print('reserved header names: \n{}'.format(reserved))
 
     try:
         flux = flux_cls()                       # empty matrix is fine
@@ -104,7 +104,6 @@ def invalid_instantiations():
 def instantiate_flux(num_rows=100,
                      num_cols=3,
                      len_values=3):
-
 
     some_namedtuple = namedtuple('some_namedtuple', ('col_a', 'col_b', 'col_c'))
 
@@ -140,9 +139,16 @@ def instantiate_flux(num_rows=100,
     a = flux.headers
     a = flux.header_names()
 
+    # help(flux.as_array_preview)
+    flux.aap_indices = [-3, None]
+    b = flux.as_array_preview
+    flux.aap_indices = [1, 5+1]
+    c = flux.as_array_preview
+
     # help(flux.as_array)
-    a = flux.as_array(0, 10)
-    b = flux.as_array(-10)
+    a = flux.as_array(-20)
+    a = flux.as_array(20, 30)
+    a = flux.as_array(-15, -10)
 
     a = flux.num_rows
     a = flux.num_cols
@@ -198,9 +204,9 @@ def iterate_flux_rows(flux):
         a = row.header_names()
         a = row.values
 
-        a = row.dict()
         a = row.namedtuple()
         a = row.namedrow()
+        a = dict(zip(row.header_names(), row.values))
 
         # read row values
         a = row.col_a
@@ -255,8 +261,6 @@ def iterate_primitive_rows(flux):
     m = list(flux.rows())
     # or
     m = [row.values for row in flux]
-
-    m = [row.dict() for row in flux]
 
     # build new matrix of primitive values
     m = [flux.header_names()]
