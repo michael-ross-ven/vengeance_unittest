@@ -14,11 +14,9 @@ from vengeance import print_runtime
 from vengeance import is_date
 from vengeance.util.text import vengeance_message
 
-from root.examples import excel_shared as share
+from root.examples import share
 
-# from vengeance import print_performance
-# from line_profiler import LineProfiler
-# profiler = LineProfiler()
+profiler = share.resolve_profiler_function()
 
 
 @print_runtime
@@ -50,7 +48,9 @@ def main():
 
     flux_subclass()
 
-    # attribute_access_performance(flux)
+    attribute_access_performance(flux)
+
+    share.print_profiler(profiler)
 
 
 def invalid_instantiations():
@@ -120,6 +120,16 @@ def instantiate_flux(num_rows=100,
         def method(self):
             return self.col_a
 
+    class some_slots_cls:
+        __slots__ = ('col_a',
+                     'col_b',
+                     'col_c')
+
+        def __init__(self, v_a, v_b, v_c):
+            self.col_a = v_a
+            self.col_b = v_b
+            self.col_c = v_c
+
     # invalid_instantiations()
 
     # matrix organized like csv data, column names are provided in first row
@@ -128,6 +138,10 @@ def instantiate_flux(num_rows=100,
 
     # __init__ from objects
     m = [some_cls('a', 'b', 'c') for _ in range(3)]
+    flux_b = flux_cls(m)
+
+    # __init__ from slots objects
+    m = [some_slots_cls('a', 'b', 'c') for _ in range(3)]
     flux_b = flux_cls(m)
 
     # __init__ from namedtuples
@@ -702,10 +716,10 @@ def flux_subclass():
          ['id-003', 'bob',   2, 5, '2019-07-22'],
          ['id-004', 'chris', 2, 1, '2019-06-28'],
          ['id-005',  None,   7, 1,  None]]
-    flux = flux_custom_cls(m)
-    flux.append_columns('mike')
+    flux = flux_custom_cls(m, 'apples')
 
-    # print(flux_custom_cls.commands)
+    # commands = flux_custom_cls.commands
+    # print(commands)
     # a = repr(flux)
 
     flux.execute_commands(flux.commands)
@@ -714,6 +728,10 @@ def flux_subclass():
     # flux.execute_commands(flux.commands, profiler=True)
     # flux.execute_commands(flux.commands, profiler='line_profiler')
     # flux.execute_commands(flux.commands, profiler='print_runtime')
+
+    flux_b = flux.copy()
+    flux.append_columns('bleh')
+    flux_b.append_columns('bleh_b')
 
     pass
 
@@ -734,8 +752,10 @@ class flux_custom_cls(flux_cls):
                                     'apple_bonus'))
                 )
 
-    def __init__(self, matrix):
+    def __init__(self, matrix, product):
         super().__init__(matrix)
+
+        self.product = product
         self.num_unique_names = None
 
     def _sort(self):
@@ -766,7 +786,8 @@ class flux_custom_cls(flux_cls):
         self.filter(by_apples_sold)
 
     def __repr__(self):
-        return '{} ({:,})'.format(self.__class__.__name__, self.num_rows)
+        return '{} product: {}'.format(super().__repr__(),
+                                       self.product)
 
 
 # @print_runtime

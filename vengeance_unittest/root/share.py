@@ -13,12 +13,42 @@ wb:      Any
 wb_levs: (None, dict)
 
 wb        = None
-# wb_levs   = None
 wb_levs   = {}
 files_dir = os.path.split(os.path.realpath(__file__))[0] + '\\files\\'
 
 if not os.path.exists(files_dir):
     raise FileExistsError('whoops, need to modify files_dir')
+
+
+def is_running_debug():
+    import inspect
+
+    for s_frame in reversed(inspect.stack()):
+        if s_frame.filename.endswith('pydevd.py'):
+            return True
+
+    return False
+
+
+def resolve_profiler_function():
+    from vengeance import print_runtime
+
+    if is_running_debug():
+        return print_runtime
+
+    try:
+        from line_profiler import LineProfiler
+        return LineProfiler()
+    except ImportError:
+        return print_runtime
+
+
+def print_profiler(profiler):
+    try:
+        if profiler.functions:
+            profiler.print_stats()
+    except AttributeError:
+        pass
 
 
 # noinspection PyTypeChecker,DuplicatedCode

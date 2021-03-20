@@ -32,7 +32,7 @@ from vengeance.excel_com.excel_constants import (xlPasteColumnWidths,
                                                  xlCalculationAutomatic,
                                                  xlNone)
 
-from root.examples import excel_shared as share
+from root.examples import share as share
 
 xlYellow = 65535
 xlBlue   = 15773696
