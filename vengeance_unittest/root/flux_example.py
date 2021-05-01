@@ -194,14 +194,15 @@ def iterate_flux_rows(flux):
     row = flux.matrix[5]
     row = flux.matrix[10]
 
-    # .namedtuple() vs .namedtuples()
-    # .namedrow()   vs .namedrows()
+    # same results, but one method much faster than the other
+    a = [row.dict() for row in flux]
+    b = list(flux.dictrows())
 
-    m = [row.namedtuple() for row in flux]
-    m = list(flux.namedtuples())
+    a = [row.namedrow() for row in flux]
+    b = list(flux.namedrows())
 
-    m = [row.namedrow() for row in flux]
-    m = list(flux.namedrows())
+    a = [row.namedtuple() for row in flux]
+    b = list(flux.namedtuples())
 
     a = flux.as_array(-10)            # to help with debugging: triggers a special view in PyCharm
 
@@ -320,14 +321,37 @@ def flux_aggregation_methods(flux):
     d = flux.map_rows(1, 2)
     d = flux.map_rows(slice(-3, -1))
 
+    flux['value_a'] = [100.0] * len(flux)
+
+    d = flux.map_rows_append('col_a', 'col_b')
+    countifs = {k: len(rows) for k, rows in d.items()}
+    sumifs   = {k: sum([row.value_a for row in rows])
+                                    for k, rows in d.items()}
+
     # map dictionary values to types other than flux_row_cls
+    d = flux.map_rows('col_a', 'col_b', rowtype=dict)
     d = flux.map_rows('col_a', 'col_b', rowtype=list)
     d = flux.map_rows('col_a', 'col_b', rowtype=tuple)
 
+    d = flux.map_rows('col_a', 'col_b', rowtype='dict')
     d = flux.map_rows('col_a', 'col_b', rowtype='list')
     d = flux.map_rows('col_a', 'col_b', rowtype='tuple')
     d = flux.map_rows('col_a', 'col_b', rowtype='namedrow')
     d = flux.map_rows('col_a', 'col_b', rowtype='namedtuple')
+
+    # group rows
+    m = [['col_a', 'col_b', 'col_c']]
+    m.extend(['a', 'b', 'c'] for _ in range(3))
+    m.extend(['c', 'd', 'e'] for _ in range(3))
+    m.extend(['e', 'f', 'g'] for _ in range(3))
+    m.extend(['a', 'b', 'g'] for _ in range(2))
+    m.extend(['c', 'b', 'e'] for _ in range(2))
+
+    flux_b = flux_cls(m)
+    a = flux_b.group_rows_append('col_a', 'col_c')
+    a = flux_b.group_rows_append('col_a', 'col_c')
+
+
 
     # shared address locations
     m = share.random_matrix(0) + \
@@ -338,11 +362,7 @@ def flux_aggregation_methods(flux):
     d = flux_b.map_rows_append(lambda row: id(row.values))
     flux_b.matrix[1].col_a = 'm'
 
-    flux['value_a'] = [100.0] * len(flux)
-    d = flux.map_rows_append('col_a', 'col_b')
-    countifs = {k: len(rows) for k, rows in d.items()}
-    sumifs   = {k: sum([row.value_a for row in rows])
-                                    for k, rows in d.items()}
+
 
     # .contiguous()
     #   group rows where *adjacent* values are identical
@@ -476,10 +496,10 @@ def flux_jagged_rows(flux):
     row_repr_b  = repr(flux.matrix[i])
 
     assert '🗲jagged🗲' not in flux_repr_a
-    assert '🗲jagged🗲' not in row_repr_a
+    assert '🗲jagged' not in row_repr_a
 
     assert '🗲jagged🗲' in flux_repr_b
-    assert '🗲jagged🗲' in row_repr_b
+    assert '🗲jagged' in row_repr_b
 
     a = list(flux.jagged_rows())
 
@@ -496,10 +516,13 @@ def flux_column_methods(flux):
     flux.rename_columns({'col_a': 'renamed_a',
                          'col_b': 'renamed_b'})
 
-    flux.insert_columns((0, 'inserted_a'),
-                        (0, 'inserted_b'),
-                        (0, 'inserted_c'),
+    flux.insert_columns((0,       'inserted_a'),
+                        (0,       'inserted_b'),
+                        (0,       'inserted_c'),
                         ('col_c', 'inserted_d'))
+
+    flux.insert_columns(('inserted_d', 'inserted_x'),
+                        ('inserted_d', 'inserted_y'), after=[True, True])
 
     flux.append_columns('append_a',
                         'append_b',

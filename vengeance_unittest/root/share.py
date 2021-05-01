@@ -103,15 +103,13 @@ def random_matrix(num_rows=100,
 
 
 def set_project_workbook(excel_app='any',
-                         read_only=False,
-                         update_links=True):
+                         **kwargs):
     global wb
 
     print()
     wb = vgc.open_workbook(files_dir + 'example.xlsm',
                            excel_app,
-                           read_only=read_only,
-                           update_links=update_links)
+                           **kwargs)
     return wb
 
 
@@ -175,7 +173,7 @@ def worksheet_to_lev(ws, *,
         return wb_levs[lev_key]
 
     if wb is None:
-        wb = set_project_workbook(read_only=True)
+        wb = set_project_workbook(ReadOnly=True)
 
     ws   = wb.Sheets[ws_name]
     ws_h = worksheet_headers()

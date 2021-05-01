@@ -30,7 +30,9 @@ from vengeance import flux_cls
 from vengeance.excel_com.excel_constants import (xlPasteColumnWidths,
                                                  xlCalculationManual,
                                                  xlCalculationAutomatic,
-                                                 xlNone)
+                                                 xlNone,
+                                                 xlMinimized,
+                                                 xlNormal)
 
 from root.examples import share as share
 
@@ -47,8 +49,8 @@ def main():
     # excel_app = 'any'
     # excel_app = 'empty'
     share.set_project_workbook(excel_app,
-                               read_only=True,
-                               update_links=True)
+                               ReadOnly=True,
+                               UpdateLinks=True)
 
     instantiate_lev('sheet1')
     instantiate_lev('sheet2')
@@ -77,7 +79,7 @@ def main():
     share.close_project_workbook(save=False)
 
 
-def instantiate_lev(tab_name):
+def instantiate_lev(ws_name):
     """
     excel_levity_cls range reference:
         lev['{col}{row}:{col}{row}']
@@ -95,7 +97,7 @@ def instantiate_lev(tab_name):
     """
     # help(excel_levity_cls)
 
-    lev = share.worksheet_to_lev(tab_name)
+    lev = share.worksheet_to_lev(ws_name)
 
     a = repr(lev)
 
