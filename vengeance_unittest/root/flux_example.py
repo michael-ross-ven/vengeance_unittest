@@ -9,8 +9,10 @@ flux_cls
 import vengeance as ven
 
 from collections import namedtuple
+
 from vengeance import flux_cls
 from vengeance import print_runtime
+from vengeance import print_performance
 from vengeance import is_date
 from vengeance.util.text import vengeance_message
 
@@ -48,7 +50,7 @@ def main():
 
     flux_subclass()
 
-    attribute_access_performance(flux)
+    # attribute_access_performance(flux)
 
     share.print_profiler(profiler)
 
@@ -321,7 +323,18 @@ def flux_aggregation_methods(flux):
     d = flux.map_rows(1, 2)
     d = flux.map_rows(slice(-3, -1))
 
-    flux['value_a'] = [100.0] * len(flux)
+    a = [100.0] * flux.num_rows
+    b = [100.0] * len(flux)
+
+    flux['value_a'] = a
+
+    try:
+        flux['value_a'] = b
+        raise IndexError('column is too long, should raise error')
+    except IndexError:
+        pass
+
+
 
     d = flux.map_rows_append('col_a', 'col_b')
     countifs = {k: len(rows) for k, rows in d.items()}
@@ -604,11 +617,11 @@ def flux_column_values(flux):
     #   etc...
 
     # shorthand to apply a single value to all rows in column
-    flux['col_zz'] = ['blah'] * len(flux)
-    flux['col_zz'] = [{'zz': [4, 5, 6]}] * len(flux)
+    flux['col_zz'] = ['blah'] * flux.num_rows
+    flux['col_zz'] = [{'zz': [4, 5, 6]}] * flux.num_rows
     flux['col_zz'] = [[1, 2, 3] for _ in range(flux.num_rows)]
 
-    flux['r_i'] = range(1, len(flux.matrix))
+    flux['enum'] = flux.indices()
 
     pass
 
