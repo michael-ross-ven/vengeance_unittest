@@ -535,7 +535,7 @@ def flux_column_methods(flux):
                         ('col_c', 'inserted_d'))
 
     flux.insert_columns(('inserted_d', 'inserted_x'),
-                        ('inserted_d', 'inserted_y'), after=[True, True])
+                        ('inserted_d', 'inserted_y'))
 
     flux.append_columns('append_a',
                         'append_b',
